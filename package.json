@@ -1,0 +1,36 @@
+{
+  "private": true,
+  "name": "bob",
+  "version": "0.0.1",
+  "description": "Create example data for test cases. Based on rosiejs/rosie",
+  "main": "src/main.js",
+  "scripts": {
+    "prepublish": "node mark-deps-bundled.js",
+    "test": "mocha spec --recursive --require spec/helpers/chai.js",
+    "test-watch": "mocha --recursive -b -w spec --require spec/helpers/chai.js",
+    "test-jenkins": "JUNIT_REPORT_PATH=report.xml JUNIT_REPORT_STACK=1 mocha spec --recursive --require spec/helpers/chai.js --timeout 15000 --reporter mocha-jenkins-reporter||true"
+  },
+  "author": "Lukas Degener <l.degener@tarent.de>",
+  "license": "Not decided yet",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "chai-as-promised": "^5.3.0",
+    "mocha": "^3.0.2",
+    "mocha-jenkins-reporter": "^0.2.4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://dfg.tarent.de/anonscm/git/geprisapp/geprisapp-service.git"
+  },
+  "dependencies": {
+    "bluebird": "^3.4.3",
+    "deepmerge": "^0.2.10",
+    "minimist": "^1.2.0",
+    "rosie": "^1.6.0"
+  },
+  "bundleDependencies": [
+    "deepmerge",
+    "minimist",
+    "rosie"
+  ]
+}
