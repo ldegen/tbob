@@ -6,9 +6,10 @@
   "main": "src/main.js",
   "scripts": {
     "prepublish": "node mark-deps-bundled.js",
-    "test": "mocha spec --recursive --require spec/helpers/chai.js",
-    "test-watch": "mocha --recursive -b -w spec --require spec/helpers/chai.js",
-    "test-jenkins": "JUNIT_REPORT_PATH=report.xml JUNIT_REPORT_STACK=1 mocha spec --recursive --require spec/helpers/chai.js --timeout 15000 --reporter mocha-jenkins-reporter||true"
+    "test": "mocha spec --recursive --require spec/helpers/chai.js --require coffee-script/register --compilers coffee:coffee-script/register",
+    "test-watch": "mocha --recursive -b -w spec --require spec/helpers/chai.js --require coffee-script/register --compilers coffee:coffee-script/register",
+    "test-debug": "node-debug node_modules/mocha/bin/_mocha  --recursive spec --require spec/helpers/chai.js --require coffee-script/register --compilers coffee:coffee-script/register --no-timeouts --debug-brk",
+    "test-jenkins": "JUNIT_REPORT_PATH=report.xml JUNIT_REPORT_STACK=1 mocha spec --recursive --require spec/helpers/chai.js --require coffee-script/register --compilers coffee:coffee-script/register --timeout 15000 --reporter mocha-jenkins-reporter||true"
   },
   "author": "Lukas Degener <l.degener@tarent.de>",
   "license": "Not decided yet",
@@ -16,7 +17,8 @@
     "chai": "^3.5.0",
     "chai-as-promised": "^5.3.0",
     "mocha": "^3.0.2",
-    "mocha-jenkins-reporter": "^0.2.4"
+    "mocha-jenkins-reporter": "^0.2.4",
+    "node-inspector": "^0.12.8"
   },
   "repository": {
     "type": "git",
