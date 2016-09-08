@@ -1,8 +1,7 @@
 prj_1: 
-  a: Projekt
-  with: 
-    - ab_gesperrt
-    - SFB_Rahmenprojekt
-    - title:
-      en: "SFB 42: Space Shuttle"
+  - Projekt
+  - ab_gesperrt
+  - SFB_Rahmenprojekt
+  - title:
+    en: "SFB 42: Space Shuttle"
 

@@ -18,16 +18,27 @@ describe 'Bob', ->
 
   it 'raises an Error if you try to invent new attributes', ->
     bob = Bob (Factory) ->
-      Thing: 
+      Thing:
         new Factory()
           .sequence 'id'
           .attr 'foo', 'bar'
 
-    expect(->bob.build 'Thing', bar: 'baz').to.throw Bob.BadAttributeError
+    expect(->bob.build 'Thing', bar: 'baz').to.throw Bob.BadAttributeError, /bar/
+
+  it 'raises an Error if you refer to an undefined factory', ->
+
+    bob = Bob (Factory) ->
+      Thing:
+        new Factory()
+          .sequence 'id'
+          .attr 'foo', 'bar'
+
+    expect(->bob.build 'NoThing').to.throw Bob.NoFactoryByThatNameError, /NoThing/
+
 
   it 'supports traits (a.k.a. variants or mixins)', ->
     bob = Bob (Factory) ->
-      Thing: 
+      Thing:
         new Factory()
           .sequence 'id'
           .attr 'foo', 'bar'
@@ -35,8 +46,27 @@ describe 'Bob', ->
       with_big_bang: (options, next) ->
           next merge bang: 'big' , options
 
-    thing = bob.build ['Thing','with_big_bang'], foo: 'balla'
+    thing = bob.build 'Thing', 'with_big_bang', foo: 'balla'
     expect(thing).to.eql
       id:1
       bang:"big"
       foo:'balla'
+
+  it 'explains what you did wrong when you try to use a factory as a trait', ->
+    bob = Bob (Factory) ->
+      Thing:
+        new Factory()
+          .sequence 'id'
+          .attr 'foo', 'bar'
+      NoTrait:
+        new Factory()
+    expect(->bob.build 'Thing','NoTrait').to.throw Bob.NotATraitError, /NoTrait/
+
+  it 'explains what you did wrong when you try to use a trait as a factory', ->
+    bob = Bob (Factory) ->
+      Thing:
+        new Factory()
+          .sequence 'id'
+          .attr 'foo', 'bar'
+      NoThing: (opts, next)-> next opts
+    expect(->bob.build 'NoThing').to.throw Bob.NotAFactoryError, /NoThing/
