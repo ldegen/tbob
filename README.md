@@ -36,6 +36,46 @@ automatisch überprüft wird.
 
 
 
+Szenarien, Factories, Traits, Variants
+--------------------------------------
+
+Factories funtkionieren im wesentlichen genau wie die von Rosie.  Tatsächlich
+verwenden wir Rosie-Factories zur Implementierung unserer Factories, exponieren
+aber nur einen Teil der Rosie-API in unserer DSL.
+
+Wir verwenden zudem nicht die globale Registry von Rosie, sondern eine eigene
+Registry die spezifisch für die jeweilige Instanz von Bob ist.
+
+Eine neue Instanz von Bob wird immer mit einem Szenario referenziert. Das
+Szenario wird beschrieben durch eine anonyme Funktion, die mit einem
+`scenarioContext`-Objekt als `this` ausgeführt wird.
+
+Dieser Kontext stellt die API zum definieren von Factories bereit. Das ist im
+Wesentlichen die Methode `factory`. Diese wiederum erwartet eine weitere
+Callback-Funktion, die diese factory beschreibt.  Dieser Callback wird mit
+einem `factoryContext` als `this` aufgerufen.  Der `factoryContext` ist ein
+dünner Wrapper um eine `Factory`-Instanz von Rosie und bietet die übliche API
+(`attr`, `sequence`, `option`, `extend`). Darüber hinaus gibt es die Direktive
+`trait` zum definieren eines Traits. Diese erwartet wiederum einen Callback
+der wiederum mit einem `traitContext` als `this` ausgeführt wird. usw.
+
+Beispiel:
+---------
+
+Ein einfaches Szenario könnte folgendermaßen aussehen:
+
+``` coffeescript
+module.exports = ->
+  
+  @factory "Project", ->
+    @sequence "id"
+    @attr "title", [id], (id)->"Titel von Projekt #{id}"
+    @attr "abstract", "Lorem Ipsum einszweidrei"
+    @trait "no_abstract", ->
+      @attr "abstract", null
+    
+```
+
 
 Ideen zur Umsetzung
 -------------------

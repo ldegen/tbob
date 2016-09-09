@@ -1,69 +1,97 @@
+Factory = require('rosie').Factory
 module.exports = (configure) ->
-  Factory = require('rosie').Factory
-  definitions = configure(Factory)
+
+  bind = (obj)->(name)->return obj[name].bind obj
+
+  # creates a new scenario context
+  #
+  # The context will be the object refered to by `this`
+  # within the callback passed into the Bob constructor.
+  scenarioContext = (definitions)->
+    factory: (name,body)->
+      factory = definitions[name] = new Factory()
+      factory.name = name
+      factory.traits = {}
+      body.call factoryContext(factory)
+
+  # create a new factory context
+  #
+  # The created context will be the object refered to by `this`
+  # within the callback passed to the `factory` directive (see above).
+  factoryContext = (factory)->
+    f = bind factory
+    attr: f "attr"
+    option: f "option"
+    sequence: f "sequence"
+    extend: f "extend"
+    trait: (name, body)->
+      factory.traits[name] = body
+      factory
+
+  # create a new trait context
+  #
+  # The created context will be the object refered to by `this`
+  # within the callback passed to the `trait` directive (see above).
+  #
+  # Note that traits are not allowed to use `extend` or `trait`.
+  traitContext = (factory)->
+    f = bind factory
+    attr: f "attr"
+    option: f "option"
+    sequence: f "sequence"
+
+
+
   factories = {}
-  traits={}
+
+  configure.call scenarioContext factories
   isArray = require('util').isArray
 
-  addAttributeChecks = (name, factory) ->
-    factory.after (obj) ->
-      attr = undefined
-      value = undefined
-      attrs = factory._attrs
-      for attr,value of obj
-        if not attrs[attr]?
-          throw new BadAttributeError(attr, name)
-        if typeof value == 'undefined'
-          delete obj[attr]
-      obj
+  variantName = (factoryName, traitNames=[])->[factoryName,traitNames...].join ':'
 
-  postProcess = (name, item) ->
-    #It's a Rosie factory
-    if item instanceof Factory
-      addAttributeChecks name, item
-      factories[name] = item
-    else if typeof item == 'function'
-      traits[name] = item
-    else
-      #TODO: anything?
-      throw new BadDefinitionError(name)
+  factoryForVariant = (factoryName, traitNames)->
+    factories[variantName(factoryName,traitNames)] ?= createFactoryForVariant(factoryName,traitNames)
 
+  createFactoryForVariant = (baseFactoryName, traitNames)->
 
-  postProcess name, definition for name,definition of definitions
+    baseFactory = factories[baseFactoryName]
+    if not baseFactory?
+      throw new NoFactoryByThatNameError(baseFactoryName)
+    for traitName in traitNames
+      if not baseFactory.traits[traitName]?
+        throw new NoTraitByThatNameError(baseFactoryName,traitName)
+
+    factory = new Factory().extend baseFactory
+    factory.name = variantName baseFactoryName, traitNames
+    traitNames
+      .map (traitName)->baseFactory.traits[traitName]
+      .forEach (trait)->trait.call traitContext(factory)
+
+    factory
 
   build: (factoryName, traitNames..., opts={}) ->
     if typeof opts is "string"
       traitNames = [traitNames...,opts]
       opts = {}
 
-    if not factories[factoryName]?
-      if traits[factoryName]?
-        throw new NotAFactoryError(factoryName)
+
+    factory = factoryForVariant factoryName, traitNames
+
+    # we allow users to specify options and attribues
+    # in a single object. We have to separate them
+    # so Rosie can process them.
+
+    attributes={}
+    options={}
+    for name,value of opts
+      if factory._attrs[name]?
+        attributes[name]=value
+      else if factory.opts[name]?
+        options[name]=value
       else
-        throw new NoFactoryByThatNameError(factoryName)
+        throw new BadAttributeError name, factory.name
 
-    for traitName in traitNames
-      if not traits[traitName]?
-        if factories[traitName]?
-          throw new NotATraitError(traitName)
-        else
-          throw new NoTraitByThatNameError(traitName)
-
-    factory = (options) ->
-      factories[factoryName].build options
-
-    builder = traitNames
-      .map (name) ->
-        traits[name]
-      .reduce(
-        (f, trait) ->
-          (options) ->
-            trait options, f
-      ,
-        factory
-      )
-
-    builder opts
+    factory.build attributes, options
 
 
 module.exports.BadAttributeError = class BadAttributeError extends Error
@@ -81,12 +109,3 @@ module.exports.NoTraitByThatNameError = class NoTraitByThatNameError extends Err
     @name="NoTraitByThatNameError"
     @message="No trait was defined with the name '#{defName}'."
 
-module.exports.NotATraitError = class NotATraitError extends Error
-  constructor: (defName)->
-    @name="NotATraitError"
-    @message="The name '#{defName}' does not refer to a trait, but to a factory."
-
-module.exports.NotAFactoryError = class NotAFactoryError extends Error
-  constructor: (defName)->
-    @name="NotAFactoryError"
-    @message="The name '#{defName}' does not refer to a factory, but to a trait."
