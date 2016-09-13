@@ -26,6 +26,7 @@ module.exports = (configure) ->
     extend: f "extend"
     trait: (name, body)->
       factory.traits[name] = body
+      body.call updateBaseContext(factory)
       factory
 
   # create a new trait context
@@ -40,6 +41,16 @@ module.exports = (configure) ->
     option: f "option"
     sequence: f "sequence"
 
+
+  # used in trait definitions to add missing attributes to the
+  # base factory.
+  updateBaseContext = (factory)->
+    attr: (name)->
+      factory.attr name, null if not factory._attrs[name]?
+    option: (name)->
+      factory.option name, null if not factory.options[name]?
+    sequence: (name)->
+      factory.attr name, null if not factory._attrs[name]?
 
 
   factories = {}

@@ -50,3 +50,20 @@ describe 'Bob', ->
       bang:"big"
       foo:'small'
 
+  it "automatically adds trait attributes to the base factory if necessary", ->
+    bob = Bob  ->
+      @factory 'Thing', ->
+        @sequence 'id'
+          .attr 'foo', 'bar'
+        @trait 'with_big_bang', ->
+          @attr 'bang','big'
+          @attr 'foo', "fum"
+          @attr 'blob', 42
+
+
+    thing = bob.build 'Thing', bang: 'bug'
+    expect(thing).to.eql
+      id:1
+      bang:"bug"
+      foo:"bar"
+      blob:null
