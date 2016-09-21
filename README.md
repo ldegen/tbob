@@ -36,8 +36,8 @@ automatisch überprüft wird.
 
 
 
-Szenarien, Factories, Traits, Variants
---------------------------------------
+Welten, Factories, Traits
+-------------------------
 
 Factories funtkionieren im wesentlichen genau wie die von Rosie.  Tatsächlich
 verwenden wir Rosie-Factories zur Implementierung unserer Factories, exponieren
@@ -46,9 +46,9 @@ aber nur einen Teil der Rosie-API in unserer DSL.
 Wir verwenden zudem nicht die globale Registry von Rosie, sondern eine eigene
 Registry die spezifisch für die jeweilige Instanz von Bob ist.
 
-Eine neue Instanz von Bob wird immer mit einem Szenario referenziert. Das
-Szenario wird beschrieben durch eine anonyme Funktion, die mit einem
-`scenarioContext`-Objekt als `this` ausgeführt wird.
+Eine neue Instanz von Bob wird immer mit einer *Welt* instanziiert. Die
+Welt wird beschrieben durch eine anonyme Funktion, die mit einem
+`worldContext`-Objekt als `this` ausgeführt wird.
 
 Dieser Kontext stellt die API zum definieren von Factories bereit. Das ist im
 Wesentlichen die Methode `factory`. Diese wiederum erwartet eine weitere
@@ -61,8 +61,8 @@ der wiederum mit einem `traitContext` als `this` ausgeführt wird. usw.
 
 Beispiel:
 ---------
-
-Ein einfaches Szenario könnte folgendermaßen aussehen:
+Beispiel
+Eine einfache Welt könnte folgendermaßen aussehen:
 
 ``` coffeescript
 module.exports = ->
@@ -75,6 +75,9 @@ module.exports = ->
       @attr "abstract", null
     
 ```
+
+Szenarien, Varianten, Dokumente
+-------------------------------
 
 
 Ideen zur Umsetzung
