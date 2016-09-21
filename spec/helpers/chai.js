@@ -50,3 +50,13 @@ global.Sink = function(opts0) {
   });
   return output;
 };
+global.tmpFileName = function(test) {
+  var sha1 = require("crypto").createHash("sha1");
+  sha1.update(new Buffer([process.pid]));
+  sha1.update(test.fullTitle());
+  return require("path").join(
+    require("os").tmpdir(),
+    sha1.digest().toString("hex")
+  );
+};
+
