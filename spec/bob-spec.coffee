@@ -67,3 +67,113 @@ describe 'Bob', ->
       bang:"bug"
       foo:"bar"
       blob:null
+  
+  it "provides an API for defining complex attributes via factories", ->
+    bob = Bob ->
+      @factory 'Document', ->
+        @nested 'title', 'Bilingual', de: "deutscher Titel"
+        @nested 'abstract', 'Bilingual', 'empty', en: "There is only an English abstract."
+
+      @factory 'Bilingual', ->
+        @attr 'de', 'deutscher Inhalt'
+        @attr 'en', 'English content'
+        @trait 'empty', ->
+          @attr 'de', null
+          @attr 'en', null
+
+    expect(bob.build 'Document', title:de:"De Equo").to.eql
+      title:
+        de: "De Equo"
+        en: "English content"
+      abstract:
+        de: null
+        en:"There is only an English abstract."
+
+
+  it "provides an API for programatically defining defaults for complex attributes", ->
+    bob = Bob ->
+      @factory 'Document', ->
+        @nested 'title', 'Bilingual', 'empty', de: "Mein Leben"
+        @nested 'abstract', 'Bilingual', 'empty', ['title', 'abstract'], (title, abstract)->
+          de:"Abstract zu '#{title.de ? title.en}': #{abstract.de ? "(k.A.)"}"
+          en:"Abstract for '#{title.en ? title.de}': #{abstract.en ? "(n.a.)"}"
+
+      @factory 'Bilingual', ->
+        @attr 'de', 'deutscher Inhalt'
+        @attr 'en', 'English content'
+        @trait 'empty', ->
+          @attr 'de', null
+          @attr 'en', null
+
+    expect(bob.build 'Document', abstract:en:'There is only an English abstract.').to.eql
+      title:
+        de: "Mein Leben"
+        en: null
+      abstract:
+        en:"Abstract for 'Mein Leben': There is only an English abstract."
+        de:"Abstract zu 'Mein Leben': (k.A.)"
+
+
+  it "provides an API for defining a list of complex attributes", ->
+    bob = Bob ->
+      @factory 'Document', ->
+        @list 'beteiligungen', 'Beteiligung', [
+          ['verstorben', 'intern', rolle: "GGA"]
+          rolle: "PAN"
+        ]
+      @factory 'Beteiligung', ->
+        @sequence 'id'
+        @attr 'rolle', "YEP"
+        @attr 'visible', true
+        @attr 'active', true
+        @trait 'verstorben', ->
+          @attr 'visible', false
+          @attr 'active', false
+        @trait 'intern', ->
+          @attr 'visible', false
+    expect(bob.build 'Document').to.eql
+      beteiligungen:[
+        id:1
+        rolle: 'GGA'
+        active: false
+        visible: false
+      ,
+        id:2
+        rolle: 'PAN'
+        active: true
+        visible: true
+      ]
+    expect(bob.build 'Document', beteiligungen:[
+      rolle:'GGA'
+      ['verstorben', id:25]
+      'intern'
+    ]).to.eql
+      beteiligungen:[
+        id:3
+        rolle:'GGA'
+        active:true
+        visible:true
+      ,
+        id:25
+        active:false
+        visible:false
+        rolle: 'YEP'
+      ,
+        id:4
+        active:true
+        visible:false
+        rolle: 'YEP'
+      ]
+
+  it "provides an API for defining complex attributes inline", ->
+    bob = Bob ->
+      @factory 'Document', ->
+        @nested 'title', ->
+          @attr 'de', "deutscher Titel"
+          @attr 'en', "English title"
+    
+    expect(bob.build 'Document').to.eql
+      title:
+        de: "deutscher Titel"
+        en: "English title"
+
