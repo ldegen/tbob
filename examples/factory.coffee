@@ -8,7 +8,7 @@ module.exports = ->
         '0': id: 0
       entries = {}
       for id,entry of entries0
-        entries[id] = @build factory, entry ,opts
+        entries[id] = @nested factory, entry ,opts
       entries
 
   titelEntries = (entries0)->
@@ -23,7 +23,7 @@ module.exports = ->
         labelFemale: de:"Dr."
     entries = {}
     for id,entry of entries0
-      entries[id] = @build "MaleFemaleEntry", entry , typeLabel:'Titel'
+      entries[id] = @nested "MaleFemaleEntry", entry , typeLabel:'Titel'
     entries
 
   @factory 'LookupEntry', ->
@@ -38,7 +38,7 @@ module.exports = ->
   @factory 'SimpleEntry', ->
     @extend 'LookupEntry'
     @attr 'label',['label','typeLabel'], (label,tl)->
-      @build 'Bilingual', label ?
+      @nested 'Bilingual', label ?
         de: "Bezeichnung #{tl}"
         en: "Label #{tl}"
 
@@ -46,22 +46,22 @@ module.exports = ->
   @factory 'ShortLongEntry', ->
     @extend 'LookupEntry'
     @attr 'labelShort',['labelShort','typeLabel'], (label,tl)->
-      @build 'Bilingual', label ?
+      @nested 'Bilingual', label ?
         de: "Bezeichnung #{tl} (kurz)"
         en: "Label #{tl} (short)"
     @attr 'labelLong',['labelLong','typeLabel'], (label,tl)->
-      @build 'Bilingual', label ?
+      @nested 'Bilingual', label ?
         de: "Bezeichnung #{tl} (lang)"
         en: "Label #{tl} (long)"
 
   @factory 'MaleFemaleEntry', ->
     @extend 'LookupEntry'
     @attr 'labelFemale',['labelFemale','typeLabel'], (label,tl)->
-      @build 'Bilingual', label ?
+      @nested 'Bilingual', label ?
         de: "Bezeichnung #{tl} (weibl.)"
         en: "Label #{tl} (female)"
     @attr 'labelMale',['labelMale','typeLabel'], (label,tl)->
-      @build 'Bilingual', label ?
+      @nested 'Bilingual', label ?
         de: "Bezeichnung #{tl} (männl.)"
         en: "Label #{tl} (male)"
 
@@ -141,7 +141,7 @@ module.exports = ->
 
   @factory 'InsTitel', ->
     @attr 'nameRoot', ['nameRoot'], (name)->
-      @build "Bilingual", name ?
+      @nested "Bilingual", name ?
         de: 'Name der Wurzelinstitution'
         en: 'Name of Root Institution'
     @attr 'namePostanschrift', 'Name der Wurzelinstitution, Abteilung, usw'
@@ -155,7 +155,7 @@ module.exports = ->
     @attr 'gz', 'FOO 08/15'
     @attr 'gzAnzeigen', false
     @attr 'titel', ['titel'], (titel)->
-      @build "Bilingual", titel ?
+      @nested "Bilingual", titel ?
         de: "Rahmenprojekttitel"
         en: "Title of Framework Project"
 
@@ -171,10 +171,10 @@ module.exports = ->
     @attr 'ortKey', 'DEU12potsdam'
     @attr 'plzVorOrt', '00000'
     @attr 'plzNachOrt',null
-    @attr 'titel',['titel'], (titel)->@build 'TitelTupel',titel ? {}
+    @attr 'titel',['titel'], (titel)->@nested 'TitelTupel',titel ? {}
     @attr 'geschlecht','m'
-    @attr 'institution',['institution'], (ins)->@build 'InsTitel', ins ? {}
-    @attr 'geolocation',['geolocation'], (loc)-> if loc? then @build 'GeoLocation', loc
+    @attr 'institution',['institution'], (ins)->@nested 'InsTitel', ins ? {}
+    @attr 'geolocation',['geolocation'], (loc)-> if loc? then @nested 'GeoLocation', loc
     @attr 'bundesland',0
     @attr 'land',0
 
@@ -188,25 +188,25 @@ module.exports = ->
     @attr 'ortKey', 'DEU12potsdam'
     @attr 'ort', 'Potsdam'
     @attr 'name:Bilingual',['name'], (name)->
-      @build 'Bilingual', name ?
+      @nested 'Bilingual', name ?
         de: 'Name der Institution'
         en: 'Name of Institution'
     @attr 'nameRoot', ['nameRoot'], (name)->
-      @build "Bilingual", name ?
+      @nested "Bilingual", name ?
         de: 'Name der Wurzelinstitution'
         en: 'Name of Root Institution'
     @attr 'namePostanschrift', 'Name der Wurzelinstitution, Abteilung, usw'
-    @attr 'geolocation',['geolocation'], (loc)-> if loc? then @build 'GeoLocation', loc
+    @attr 'geolocation',['geolocation'], (loc)-> if loc? then @nested 'GeoLocation', loc
 
   @factory 'RawAbschlussbericht', ->
     @attr 'datum', 0
     @attr 'abstract', ['abstract'], (abs)->
-      @build 'Bilingual',abs ?
+      @nested 'Bilingual',abs ?
         de:'Deutscher AB Abstract'
         en:'Englischer AB Abstract'
     @attr 'publikationen',['publikationen'], (pubs)->
       (pubs ? []).map (pub)->
-        @build 'RawPublikation',pub
+        @nested 'RawPublikation',pub
   @factory 'RawPublikation', ->
     @sequence '_partSn'
     @attr '_partType', 'PUBLIKATION'
@@ -237,49 +237,49 @@ module.exports = ->
     @attr 'gzAnzeigen', false
     @attr 'wwwAdresse', "http://www.mein-projekt.de"
     @attr 'rahmenprojekt',['rahmenprojekt'], (rp)->
-      if rp? then @build 'RawRahmenprojekt', rp
+      if rp? then @nested 'RawRahmenprojekt', rp
     @attr 'beginn'
     @attr 'ende'
     @attr 'beteiligteFachrichtungen'
     @attr 'titel', ['titel'], (titel)->
-      @build 'Bilingual', titel ?
+      @nested 'Bilingual', titel ?
         de: "Projekttitel"
         en: "Project Title"
     @attr 'antragsart', 'EIN'
     @attr 'abstract', ['abstract'], (abstract)->
-      if abstract? then @build 'Bilingual', abstract
+      if abstract? then @nested 'Bilingual', abstract
     @attr 'fachklassifikationen', ['fachklassifikationen'], (fks)->
       prioSet = (fks ? []).some (fk)->fk.prioritaet
       (fks ? [{wissenschaftsbereich:0,fachkollegium:0,fach:0}]).map (d,i)->
         if not prioSet and not d.prioritaet?
           prioSet=true
           d.prioritaet=true
-        @build 'RawFachklassifikation', d
+        @nested 'RawFachklassifikation', d
     @attr 'internationalerBezug',['internationalerBezug'], (zs)->
-      (zs ? []).map (z)->@build 'RawNationaleZuordnung', z
+      (zs ? []).map (z)->@nested 'RawNationaleZuordnung', z
     @attr 'programmklassifikation', ['programmklassifikation'], (pkl)->
-      @build('RawProgrammklassifikation', pkl ? {})
+      @nested('RawProgrammklassifikation', pkl ? {})
     @attr 'perBeteiligungen', ['perBeteiligungen'] , (bets)->
-      (bets ? []).map (bet)->@build 'RawPersonenbeteiligung', bet
+      (bets ? []).map (bet)->@nested 'RawPersonenbeteiligung', bet
     @attr 'insBeteiligungen', ['insBeteiligungen'] , (bets)->
-      (bets ? []).map (bet)->@build 'RawInstitutionsbeteiligung', bet
+      (bets ? []).map (bet)->@nested 'RawInstitutionsbeteiligung', bet
 
     @attr 'personen',['perBeteiligungen','personen'], (bets,personen0)->
       personen0 ?= {}
       personen = {}
       for bet in bets
-        personen[bet.personId]=@build 'RawBeteiligtePerson', {id:bet.personId}
+        personen[bet.personId]=@nested 'RawBeteiligtePerson', {id:bet.personId}
       for perId, person of personen0
-        personen[perId] = @build 'RawBeteiligtePerson', person
+        personen[perId] = @nested 'RawBeteiligtePerson', person
       personen
     @attr 'institutionen',['insBeteiligungen','institutionen'], (bets,institutionen0)->
       institutionen0 ?= {}
       institutionen = {}
       for bet in bets
-        institutionen[bet.institutionId]=@build 'RawBeteiligteInstitution', {id:bet.institutionId}
+        institutionen[bet.institutionId]=@nested 'RawBeteiligteInstitution', {id:bet.institutionId}
       for insId, institution of institutionen0
-        institutionen[insId] = @build 'RawBeteiligteInstitution', institution
+        institutionen[insId] = @nested 'RawBeteiligteInstitution', institution
       institutionen
     @attr 'abschlussbericht',['abschlussbericht'],(ab)->
-      if ab? then @build 'RawAbschlussbericht', ab
+      if ab? then @nested 'RawAbschlussbericht', ab
 
