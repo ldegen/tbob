@@ -38,6 +38,10 @@ describe "The Signature Matcher", ->
       match = SigMatch [["a?,a?,a?",f]]
       expect(match [1],[2]).to.eql [[1],[2],null]
 
+  describe ".*", ->
+    it "matches anything", ->
+      match = SigMatch [[".*",f]]
+      expect(match [1],{a:2},"3",4).to.eql [[[1],{a:2},"3",4]]
   describe "o*", ->
     beforeEach ->
       f=(args...)->args
@@ -57,13 +61,12 @@ describe "The Signature Matcher", ->
       f = (x)->(args...)->
         variant:x
         args:args
-      match = SigMatch [
-        ["s,s+,o?", f('a')]
-        ["s,s+,a,f", f('b')]
-        ["s,f", f('c')]
-      ]
+      match = SigMatch (match)->
+        match "s,s+,o?", f('a')
+        match "s,s+,a,f", f('b')
+        match "s,f", f('c')
 
-    it "executs the action of the first matching rule", ->
+    it "executes the action of the first matching rule", ->
 
 
       expect(match "foo", "Doc","empty" ).to.eql

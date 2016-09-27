@@ -1,7 +1,7 @@
 module.exports = ->
 
   lpad = (pad,num)->(""+pad+num).slice -pad.length
-  
+
   defaultLookupEntries = (factory, opts)->
     (entries0)->
       entries0 ?=
@@ -37,47 +37,55 @@ module.exports = ->
 
   @factory 'SimpleEntry', ->
     @extend 'LookupEntry'
-    @attr 'label',['label','typeLabel'], (label,tl)->
-      @nested 'Bilingual', label ?
+    @nested 'label','Bilingual', ['label','typeLabel'], (label,tl)->
+      label ?
         de: "Bezeichnung #{tl}"
         en: "Label #{tl}"
 
 
   @factory 'ShortLongEntry', ->
     @extend 'LookupEntry'
-    @attr 'labelShort',['labelShort','typeLabel'], (label,tl)->
-      @nested 'Bilingual', label ?
+    @nested 'labelShort', 'Bilingual', ['labelShort','typeLabel'], (label,tl)->
+      label ?
         de: "Bezeichnung #{tl} (kurz)"
         en: "Label #{tl} (short)"
-    @attr 'labelLong',['labelLong','typeLabel'], (label,tl)->
-      @nested 'Bilingual', label ?
+    @nested 'labelLong', 'Bilingual', ['labelLong','typeLabel'], (label,tl)->
+      label ?
         de: "Bezeichnung #{tl} (lang)"
         en: "Label #{tl} (long)"
 
   @factory 'MaleFemaleEntry', ->
     @extend 'LookupEntry'
-    @attr 'labelFemale',['labelFemale','typeLabel'], (label,tl)->
-      @nested 'Bilingual', label ?
+    @nested 'labelFemale', 'Bilingual', ['labelFemale','typeLabel'], (label,tl)->
+      label ?
         de: "Bezeichnung #{tl} (weibl.)"
         en: "Label #{tl} (female)"
-    @attr 'labelMale',['labelMale','typeLabel'], (label,tl)->
-      @nested 'Bilingual', label ?
+    @nested 'labelMale', 'Bilingual', ['labelMale','typeLabel'], (label,tl)->
+      label ?
         de: "Bezeichnung #{tl} (männl.)"
         en: "Label #{tl} (male)"
 
   @factory 'RawLookup', ->
-    @attr 'fach',['fach'], defaultLookupEntries 'SimpleEntry',
-      typeLabel:'Fach'
-      padding:'00000'
-    @attr 'fachkollegium', ['fachkollegium'], defaultLookupEntries 'SimpleEntry',
-      typeLabel:'Fachkollegium'
-      padding:'000'
-    @attr 'fachgebiet', ['fachgebiet'], defaultLookupEntries 'SimpleEntry',
-      typeLabel:'Fachgebiet'
-      padding:'00'
-    @attr 'wissenschaftsbereich', ['wissenschaftsbereich'], defaultLookupEntries 'SimpleEntry',
-      typeLabel:'Wissenschaftsbereich'
-      padding:'0'
+    @dict 'fach', ->
+      @extend 'SimpleEntry', typeLabel:'Fach', padding:'00000'
+      @default
+        0: id:0
+    @dict 'fach', 'SimpleEntry', 'with_padding', 
+      0: id: 0
+      1: id: 1
+
+    @dict 'fach', 'SimpleEntry', 'with_padding', ['fach', 'id'], (fach,id)->
+      fach ?
+        0: id: 0
+        1: id: id+1
+
+
+    @nested 'fach', -> @extend 'SimpleEntry', typeLabel:'Fach', padding:'00000'
+    @nested 'fachkollegium', -> @extend 'SimpleEntry', typeLabel:'Fachkollegium', padding:'000'
+    @nested 'fachgebiet', -> @extend 'SimpleEntry', typeLabel:'Fachgebit', padding:'00'
+    @nested 'wissenschaftsbereich', -> @extend 'SimpleEntry', typeLabel:'Wissenschaftsbereich', padding:'0'
+    @nested 'peu', -> @extend 'SimpleEntry', typeLabel: 'PEU', defaultKey:'XXX'
+    @nested 'pemu', -> @extend 'SimpleEntry',
     @attr 'peu', ['peu'], defaultLookupEntries 'SimpleEntry',
       typeLabel:'PEU'
       defaultKey:'XXX'

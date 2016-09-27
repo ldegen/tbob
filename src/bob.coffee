@@ -1,7 +1,117 @@
-Factory = require('rosie').Factory
+Factory = require('rosie').Factory SigMatch = require "./signature-matcher"
 module.exports = (configure) ->
+  # A *Type* is tripple (name, super, traitDefinitions).
+  #
+  # *super* is a *Variant* i.e. a pair (typeRef, traitRefs)
+  #
+  # A *TraitDefinition* is basically a named list of attributes that are to be
+  # applied to a factory when instantiating a type. Every Class has at least
+  # one trait definition t0, which is applied for all instances.
+  #
+  # An *attribute* is a tuple (name, rel, dependencies, fillStrategy)
+  #
+  # *rel* is the relation type. It should be one of the following:
+  #
+  #  - null
+  #  - ('nested', type)
+  #  - ('list', type)
+  #  - ('dict', type)
+  #
+  # where *type* is a Type. It is specific for that attribute, conceptually it
+  # is anonmous and should not be referred to by name. For technical reasons, it may have a name
+  # that is generated in some predictable fashion (think cachin÷g).
+  # A relation type of null indicates that the attribute values are of some scalar type or at least
+  # their structure should be ignored, i.e. as far as Bob is concerend, those values are opaque without any
+  # meaning or structure.
+  #
+  # *dependencies* is a list of names of the same type that need to be filled before this
+  # attribute can be filled. (same as in rosie.js)
+  #
+  # *fillStrategy* is a function that will be applied to the values of the attributes specified in dependencies.
+  # Depending on the relation type, it should return
+  # - a scalar oder opaque value (null)
+  # - a single specification ('nested')
+  # - a list of specifications ('list') or
+  # - a dictionary containing specifications as values ('dict')
+  #
+  # For rel==null, fill strategies work very much like the callbacks used in rosiejs.
+  #
+  # To create an object, you have to specify a variant and optionaly overrides.
+  #
+  # Bob will construct (or load from cache) a factory for the requested variant.
+  # It will then execute the `build`-method, applying any given overrides.
+  #
+  # Constructing a factory for a variant (typeRef, traitRefs) is done by induction over the requested variant:
+  #   1. construct (or load from cache) a factory f0 for the type typeRef
+  #   2. create a new factory f and let it extend f0
+  #   3. apply traitRefs
+  #
+  # Constructing a factory for a type (name, super, traitDefinitions):
+  #   1. create a new factory f
+  #   2. if super is not nil, construct or load a factory f0 for super and let f extend f0
+  #   3. find the traitDefinition t0 and apply it to f
+  #
+  # 1) load/construct factory for base type (use a vanilla factory if bt is
+  # null) 2) apply traits 3) apply overrides
+  #
+
+  fill = (baseType, [additionalTraits], overrides)->
+    baseFactory = factoryForType
+
+  attrDirective=(context)->SigMatch (match)->
+    match "s,a,f", (attrName, dependencies, fillStrategy)->
+      context.putAttribute
+        name:attrName
+        type: null
+        dependencies: dependencies
+        fillStrategy: fillStrategy
+    match "s,.", (attrName, defaultValue)->
+      context.putAttribute
+        name:attrName
+        type:null
+        dependencies:[attrName]
+        fillStrategy: (override)->override ? defaultValue
+    match "s?,.*", (attrName="attrName")->
+      throw new InvalidUseOfDslError attrName, context.name, [
+        "@attr '#{attrName}', {defaultValue}"
+        "@attr '#{attrName}', {dependencies}, {fillStrategy}"
+      ]
+
+  nestedDirective=(context)->
+    apply = (attrName, body)->
+      nestedCx = makeCx parent:context, name:context.name+"."+attrName
+      body.call factoryApi nestedCx
+      context.putAttribute
+        name:attrName
+        type: nestedCx
+    SigMatch (match)->
+      match "s,s+,o?", (attrName, [attrFactory,traits...], defaultSpec)->
+        directive attrName, ->
+          @extend attrFactory, traits...
+          @default defaultSpec
+      match "s,s+,a,f", (attrName, [attrFactory,traits...], deps, createDefaultSpec)->
+        directive attrName, ->
+          @extend attrFactory, traits
+          @default deps, createDefaultSpec
+      match "s,f", (attrName, body) ->
+
+      match "s?,.*", (attrName="attrName")->
+        throw new InvalidUseOfDslError attrName, directive.factory.name, [
+          "@#{directive.name} '#{attrName}', {function containing inline definitions}"
+          "@#{directive.name} '#{attrName}', {factory name}, [{trait name}...], [{object with overrides}]"
+          "@#{directive.name} '#{attrName}', {factory name}, [{trait name}...], {array of dependencies}, {function for creating overrides}"
+        ]
+
   isArray = require("util").isArray
   bind = (obj)->(name)->return obj[name].bind obj
+
+  nestedDirective = (parentFactory,definitions)->
+    d = (attrName, body)->
+
+      cx=
+        parent: this
+
+
   nestedInline = (containingFactory, attrName, definitions, body)->
     name = containingFactory.name+'$'+attrName
     name = "$"+name if not containingFactory.inline
@@ -13,12 +123,33 @@ module.exports = (configure) ->
     @attr attrName, [attrName], (overrides)->
       #TODO: what about overriding traits?
       build name, overrides
+
   nestedRef = (attrName, attrFactoryName, attrTraitNames..., dependencies, createOverrides )->
     @attr attrName, dependencies, (args...)->
       overrides = createOverrides args...
       #TODO: what about overriding traits?
       doc=build attrFactoryName, attrTraitNames..., overrides
       doc
+
+  wrapDirective = (directive)->
+    SigMatch (match)->
+      match "s,s+,o?", (attrName, [attrFactory,traits...], defaultSpec)->
+        directive attrName, ->
+          @extend attrFactory, traits...
+          @default defaultSpec
+      match "s,s+,a,f", (attrName, [attrFactory,traits...], deps, createDefaultSpec)->
+        directive attrName, ->
+          @extend attrFactory, traits
+          @default deps, createDefaultSpec
+      match "s,f", (attrName, body) ->
+        directive attrName, body
+      match "s?,.*", (attrName="attrName")->
+        throw new InvalidUseOfDslError attrName, directive.factory.name, [
+          "@#{directive.name} '#{attrName}', {function containing inline definitions}"
+          "@#{directive.name} '#{attrName}', {factory name}, [{trait name}...], [{object with overrides}]"
+          "@#{directive.name} '#{attrName}', {factory name}, [{trait name}...], {array of dependencies}, {function for creating overrides}"
+        ]
+
 
 
   nested = (factory,definitions)->( name, factoryAndTraits..., dependencies, defaultValue)->
@@ -60,7 +191,7 @@ module.exports = (configure) ->
                 "An element can be specified as an array of trait names and an object of overrides as optional last element."
                 "An element can be specified as both, an empty object or an empty array"
               ]
-          
+
           build attrFactoryName, traitNames..., overrides ? {}
 
 
@@ -79,6 +210,21 @@ module.exports = (configure) ->
           "@list '#{attrName}', {factory name}, [{array of element specs}]"
           "@list '#{attrName}', {factory name}, {array of dependencies}, {function for creating element specs}"
         ]
+  extend = (factory, definitions)->(name,traits...,overrides)->
+    if typeof overrides is "string"
+      traits.push overrides
+      overrides={}
+
+    base = factoryForVariant name, traits
+    factory.extend base
+    if overrides?
+      for attrName, spec of overrides
+        factory.attr
+
+  trait= (factory, definitions)->(name, body)->
+    factory.traits[name] = body
+    body.call updateBaseContext(factory)
+    factory
   # creates a new world context
   #
   # The context will be the object refered to by `this`
@@ -99,14 +245,11 @@ module.exports = (configure) ->
     attr: f "attr"
     option: f "option"
     sequence: f "sequence"
-    extend: f "extend"
-    trait: (name, body)->
-      factory.traits[name] = body
-      body.call updateBaseContext(factory)
-      factory
+    trait: trait factory,definitions
+    extend: extend factory, definitions
     nested: nested factory, definitions
     list: list factory, definitions
-  
+
   # create a new trait context
   #
   # The created context will be the object refered to by `this`
@@ -133,7 +276,6 @@ module.exports = (configure) ->
 
   factories = {}
 
-  configure.call worldContext factories
 
   variantName = (factoryName, traitNames=[])->factoryName+"("+traitNames.join(',')+")"
 
@@ -181,6 +323,7 @@ module.exports = (configure) ->
 
     factory.build attributes, options
 
+  configure.call worldContext factories
   build: build
 
 module.exports.BadAttributeError = class BadAttributeError extends Error
@@ -202,7 +345,7 @@ module.exports.InvalidUseOfDslError = class InvalidUseOfDslError extends Error
   constructor: (attrName, factoryName, validAlternatives)->
     @name = "InvalidUseOfDslError"
     @message = """
-    Invalid use of DSL when defining '#{factoryName}.#{attrName}'. 
+    Invalid use of DSL when defining '#{factoryName}.#{attrName}'.
     The following call signatures are supported:
 
     #{validAlternatives.join '\n'}

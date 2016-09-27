@@ -1,4 +1,4 @@
-module.exports = (ruleSpecs)->
+module.exports = (ruleSpecs0)->
   isArray = require("util").isArray
   matchingPrefixLength = (test, elms)->
     return i for elm,i in elms when not test(elm)
@@ -14,6 +14,7 @@ module.exports = (ruleSpecs)->
       when 'o' then (x)->(typeof x is "object") and not isArray(x)
       when 'f' then (x)->typeof x is "function"
       when 'a' then (x)->isArray x
+      when '.' then ->true
       else throw new Error "Don't know how to test for type '#{type}'"
 
   matcher = (type, multiplicity='')->
@@ -59,6 +60,12 @@ module.exports = (ruleSpecs)->
       return false
     -> action.apply null, result
 
+  if typeof ruleSpecs0 is "function"
+    ruleSpecs = []
+    ruleSpecs0 (str,action)->ruleSpecs.push [str,action]
+  else 
+    ruleSpecs = ruleSpecs0
+    
   rules=(rule(matchersFromString(s), action) for [s,action] in ruleSpecs)
 
   (args...)->
