@@ -31,6 +31,7 @@ module.exports = (process)->
     #throw new Error("No factory definitions found in #{worldDir}")
     console.warn "No factory definitions found in #{worldDir}"
 
+
   parseYaml = ->
     new Transform
       objectMode:true
@@ -38,11 +39,20 @@ module.exports = (process)->
         @push yaml.safeLoad chunk if chunk?.length
         done()
 
+  stringify = ->
+    new Transform
+      objectMode:true
+      transform: (chunk, encoding, done)->
+        @push JSON.stringify chunk
+        done()
+  output = stringify()
+  output.pipe process.stdout if process.stdout?
   input:
     process.stdin
     .pipe splitLines()
     .pipe splitDocs()
     .pipe parseYaml()
+  output: output
   world: ->
     def.call(this) for def in worldDefs
 
