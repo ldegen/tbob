@@ -2,6 +2,12 @@ describe "The Signature Matcher", ->
 
   SigMatch = require "../src/signature-matcher"
   f=undefined
+  describe "an empty string", ->
+    beforeEach ->
+      f=(args...)->args
+    it "matches an empty argument list", ->
+      match = SigMatch [["",f]]
+      expect(match()).to.eql []
   describe "s+", ->
     beforeEach ->
       f=(args...)->args

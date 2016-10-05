@@ -43,6 +43,7 @@ module.exports = (ruleSpecs0)->
     m
 
   matchersFromString = (s)->
+    return [] if s.trim().length == 0
     matcher(type,multiplicity) for [type, multiplicity] in s.split ','
 
   rule = (matchers, action)->(args)->
@@ -58,7 +59,7 @@ module.exports = (ruleSpecs0)->
         result.push consumed
     if rest.length > 0
       return false
-    -> action.apply null, result
+    -> action.apply this, result
 
   if typeof ruleSpecs0 is "function"
     ruleSpecs = []
@@ -71,7 +72,7 @@ module.exports = (ruleSpecs0)->
   (args...)->
     for rule in rules
       action = rule args
-      return action() if action
+      return action.apply this if action
 
 
 

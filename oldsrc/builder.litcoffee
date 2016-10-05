@@ -3,6 +3,7 @@ Before we start, lets define a bit notational sugar for exporting classes.
     _exposed=[]
     _expose = (c)->_exposed.push c
 
+    SigMatch = require "./signature-matcher"
 Model
 =====
 
@@ -17,14 +18,16 @@ contain more specs to override the default behaviour for compound attributes.
 Both, traits aswell as overrides can be ommited.
 
     _expose class Spec
-      constructor: (@traitRefs=[], @overrides={})->
-        # nothing else to do.
+      constructor: SigMatch (match)->
+        match "s*,o?", (@traitRefs..., @overrides={})-> # nothing else to do.
+        match "a?,o?", (@traitRefs=[],@overrides={})-> # nothing else to do.
+        match ".*", (args...)-> throw new Error "Cannot create Spec from #{args}"
 
 
 Types
 -----
 
-A *Type* is tripple (name, super, traitDefinitions). A type is a description of
+A *Type* is tripple (name, super, attributes, traitDefinitions). A type is a description of
 the structure of a document, or part of a document. This structure is
 recursively defined by a set of attributes whose values are either scalar (or
 opaque) values, or compound structures described by nested types.
@@ -36,8 +39,26 @@ opaque) values, or compound structures described by nested types.
         @superVariant=superVariant
         @traitDefinitions=
           t0: new Trait(this, "t0")
+      
 
-All attribute definitions are grouped in traits.
+      attr: (name)->
+        @trait("t0").add(attr)
+        this
+      trait: (name)->
+        @traitDefinitions[name] ?= new Trait(this, name)
+
+
+
+Types can produce a description of their structure as a json object
+
+      describe: ()->
+        attrDescriptions = {}
+        for name, attr of @attributes()
+          attrDescriptions[attr.name] = attr.describe() 
+        name:@name
+        super:@superVariant?.describe() ? null
+        attributes:attrDescriptions
+        traits:Object.keys @traitDefinitions
 
 Traits
 ------
@@ -64,19 +85,9 @@ definitions for that trait only.
       constructor: (@type, @name)->
         @attributes={}
 
-Adding an attribute to any trait of a given type will automatically make sure
-that an attribute with the same name (but without any fill strategy!) exists in
-the default trait of that type. This is done to make sure that traits do not alter
-the document type itself, but only the fill strategy.
-
       add: (attribute)->
-        if not @name is "t0"
-          t0 = @type.traitDefinitions.t0
-          baseAttr = t0[attribute.name]
-          if not baseAttr?
-            t0.add new Attribute attribute.name, attribute.rel, [], null
-          else if baseAttr.rel?.toString() != attribute.rel?.toString()
-            throw new Error("conflicting argument types")
+        @attributes[attribute.name]=attribute
+        this
 
 When requesting an object of a given type and trait(s), we ultimately have to
 'apply' the trait to a factory object.  This boils down to applying the attribute
@@ -99,6 +110,7 @@ never create more than one factory per variant.
 
     _expose class Variant
       constructor: (@type, @traitRefs=[])->
+      describe: ()->[@type.name, @traitRefs...]
       toString: ->
         if @traitRefs.length is 0 then @type.name else "#{@type.name}(#{@traitRefs.join ','})"
 
@@ -116,6 +128,29 @@ attributes specified in dependencies.
 
     _expose class Attribute
       constructor: (@name, @dependencies=[], @fillStrategy)->
+        @nestedVariant?=null
+        @structure="opaque"
+
+Attributes allow introspection on their structure.
+
+      describe: ()->
+        name:@name
+        structure: @structure
+        nestedVariant: @nestedVariant?.describe() ? null
+
+Attributes may impose structural or type constraints on their values.
+If a single type has two or more traits that define the same attribute,
+those attribute definition must all use the same constraint.
+To support comparing constraints, every attribute can produce an opaque
+string that captures the contraints it imposes. The constraints of two
+attributes are compatible if and only if their respective `constraint`-Method
+returns the same value.
+
+      constraint: ()->
+        if @nestedVariant? 
+          "#{@structure}<#{@nestedVariant}>" 
+        else
+          "#{@structure}"
 
 Attributes are the atomic units of our semantics. We program the behaviour of
 our factories by "applying" attributes to them. Here we look at the simplest
@@ -134,8 +169,10 @@ A *NestedAttribute* is used to model an attribute whose single value is an
 object of known type.
 
     _expose class NestedAttribute extends Attribute
-      constructor: (name, @nestedType, dependencies=[], fillStrategy)->
+      constructor: (name, typeOrVariant, dependencies=[], fillStrategy)->
         super name, dependencies, fillStrategy
+        @nestedVariant = if typeOrVariant instanceof Variant then typeOrVariant else new Variant typeOrVariant
+        @structure="document"
 
 When using a nested attribute, the fillStrategy does not return a concrete
 value, but rather a spec that needs to be processed by a dedicated factory
@@ -143,20 +180,23 @@ instance.
 
       apply: (factory,build)->
         factory.attr @name, @dependencies, (attrs...)->
-          spec = fillStrategy.apply this, attrs
-          build @nestedType, spec.traitRefs, spec.overrides
+          spec = new Spec fillStrategy.apply this, attrs
+          build @nestedVariant, spec
 
 A ListAttribue is used to model an attribute whose value is an ordered list
 whose elements are all instances of the same known type.  Semantics are similar
 to that of a NestedAttribute, only for multiple values.
 
     _expose class ListAttribute extends Attribute
-      constructor: (name, @nestedType, dependencies=[], fillStrategy)->
+      constructor: (name, typeOrVariant, dependencies=[], fillStrategy)->
         super name, dependencies, fillStrategy
+        @nestedVariant = if typeOrVariant instanceof Variant then typeOrVariant else new Variant typeOrVariant
+        @structure="list"
+
       apply: (factory,build)->
         factory.attr @name, @dependencies, (attrs...)->
           specs = fillStrategy.apply this, attrs
-          build @nestedType, spec.traitRefs, spec.overrides for spec in specs
+          build @nestedVariant, new Spec spec for spec in specs
 
 A DictAttribute is used to model an attribute whose value is a dictionary of
 key-value-Pairs.  The keys are all strings (it's just an object, doh!), and the
@@ -164,13 +204,16 @@ values are all objects a known type. Semantics are completely analogous to the
 beformentioned cases.
 
     _expose class DictAttribute extends Attribute
-      constructor: (name, @nestedType, dependencies=[], fillStrategy)->
+      constructor: (name, typeOrVariant, dependencies=[], fillStrategy)->
         super name, dependencies, fillStrategy
+        @nestedVariant = if typeOrVariant instanceof Variant then typeOrVariant else new Variant typeOrVariant
+        @structure="dict"
+
       apply: (factory,build)->
         factory.attr @name, @dependencies, (attrs...)->
           specs = fillStrategy.apply this, attrs
           dict = {}
-          dict[key]=build @nestedType, spec.traitRefs, spec.overrides for key, spec of specs
+          dict[key]=build @nestedVariant, new Spec spec for key, spec of specs
           dict
 
 An OptionAttribute is used to parameterize factories without actually adding
@@ -180,12 +223,20 @@ do not appear in the resulting object.  Semantics: OptionAttributes are just
 options in rosie.
 
     _expose class OptionAttribute extends Attribute
+      constructor: (name, dependencies, fillStrategy)->
+        super name, dependencies, fillStrategy
+        @structure="option"
+
       apply: (factory)->
         factory.option @name, @dependencies, @fillStrategy
 
 A SequenceAttribute is used to model sequence attributes. Duh.
 
     _expose class SequenceAttribute extends Attribute
+      constructor: (name, dependencies, fillStrategy)->
+        super name, dependencies, fillStrategy
+        @structure="sequence"
+
       apply: (factory)->
         factory.sequence @name, @dependencies, @fillStrategy
 
@@ -198,9 +249,17 @@ To build any object, Bob will first construct a factory for the requested type o
 It caches *all* created factories. Caching is local to a 'world' instance.
 
     world = (Factory)->
-      build = (type, traitRefs=[], overrides={})->
+      build = (typeOrVariant, specOrTraitRefs, additionalOverrides)->
+        variant = if typeOrVairant instanceof Variant then typeOrVariant else new Variant typeOrVariant, []
+        spec = if specOrTraitRefs instanceof Spec then specOrtraits else new Spec specOrTraitRefs, additionalOverrides
+          
+        type = variant.type
+        traitRefs = [variant.traitRefs..., spec.traitRefs...]
+        overrides = spec.overrides
+
         f = if traitRefs.length==0 then factoryForType(type) else factoryForVariant new Variant(type, traitRefs)
         f.build overrides
+
       factories={}
 
       factoryForVariant=(variant)->

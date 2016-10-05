@@ -245,5 +245,5 @@ describe "Types", ->
       expect(optionalT(documentT foo: scalarT("number")).includes t).to.be.true
 
 
-  # We define a partial order on types.
 
+  

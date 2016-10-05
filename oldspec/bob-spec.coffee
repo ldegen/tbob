@@ -1,4 +1,4 @@
-describe 'Bob', ->
+xdescribe 'Bob', ->
   Bob = require '../src/bob'
   merge = require 'deepmerge'
   it 'is provides an API similar to Rosie for defining factories', ->
