@@ -19,7 +19,7 @@ describe "Types", ->
 #   g) The value is nil (i.e.: absent).
 #
 
-  {opaqueT, scalarT, documentT, dictT, listT, optionalT, nilT, bottomT } = require "../src/type"
+  {opaqueT, scalarT, documentT, dictT, listT, optionalT, nilT, bottomT, refT } = require "../src/type"
   describe "a) The opaque type", ->
 
     t = opaqueT()
@@ -246,4 +246,66 @@ describe "Types", ->
 
 
 
-  
+  describe "A Recursive Type", ->
+    s = t = undefined
+    beforeEach ->
+      t=documentT 
+          head: opaqueT()
+          tail: optionalT refT "some symbol"
+      s=documentT
+          head: scalarT "number"
+          tail: documentT
+            head: scalarT "string"
+            tail: optionalT refT "some symbol"
+
+    it "can only be constructed indirectly by referencing a containing type", ->
+      t2 = t.applySubst ->t
+      expect(t2.attrs.tail.nestedType.structure()).to.equal "recursive"
+      expect(t2.attrs.tail.nestedType.target).to.equal t2
+      expect(t2.describe()).to.eql [
+        'document'
+      ,
+        head: ['opaque']
+        tail: ['optional', 'recursive', 2]
+      ]
+      
+    it "can decide membership for finite instances", ->
+      t2 = t.applySubst ->t
+      doc =
+        head:1
+        tail:
+          head:2
+          tail:
+            head:3
+            tail:null
+      notDoc =
+        head:1
+        tail:
+          tail:
+            head:3
+            tail:null
+
+      expect(t2.contains doc).to.be.true
+      expect(t2.contains notDoc).to.be.false
+    it "correctly detects specializations if they have a matching recursive structure", ->
+      t2 = t.applySubst -> t
+      s2 = t.applySubst -> s
+
+      #console.log "t2", JSON.stringify t2.describe(), null, "  "
+      #console.log "s2", JSON.stringify s2.describe(), null, "  "
+      expect(t2.includes s2).to.be.true
+      expect(s2.includes t2).to.be.false
+
+    it "is accepted as specialization of a non-recursive type with matching structure", ->
+      finite = documentT
+        head: opaqueT()
+        tail: optionalT documentT
+          head: opaqueT()
+          tail: optionalT documentT
+            head: opaqueT()
+            tail: optionalT opaqueT()
+      t2 = t.applySubst -> t
+      expect(opaqueT().includes t2).to.be.true
+      expect(finite.includes t2).to.be.true
+      expect(t2.includes finite).to.be.false #no, because beyond the first three 
+                                             #elms, the structure is not specified!

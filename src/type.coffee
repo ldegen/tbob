@@ -1,19 +1,45 @@
 isArray = require("util").isArray
+
+
+applySubst= (impl) -> (s, path0=[]) ->
+  i = path0.indexOf this
+  if i!=-1
+    r=recursive i
+    path0[i]._refs ?= []
+    path0[i]._refs.push r
+    return r
+  path = [this,path0...]
+  replacement = impl.call this, s, path
+  refs = @_refs?.slice() ? []
+  delete @_refs
+  ref.target=replacement for ref in refs
+  replacement
+    
+
+expand = (impl) -> (t) ->
+  if t.structure() == "recursive"
+    throw new Error "dangling recursive reference" if not t.target?
+    impl t.target
+  else 
+    impl t
+
 opaque = do ->
   t=
     structure: -> 'opaque'
     describe: -> ['opaque']
+    applySubst: ->this
     contains: (v)-> v?
-    includes: (t, resolve)->not t.contains null, resolve
+    includes: expand (t)->not t.contains null
   -> t
 scalar = do ->
   scalarTypes =
     any:
+      applySubst: ->this
       describe: ->['scalar','any']
       structure: -> 'scalar'
       contains: (v)->
         (typeof v) in ["string", "boolean", "number"]
-      includes: (t)-> t in [
+      includes: expand (t)-> t in [
         scalar "string"
         scalar "boolean"
         scalar "number"
@@ -21,129 +47,160 @@ scalar = do ->
         bottom() 
       ]
     string:
+      applySubst: ->this
       describe: -> ['scalar','string']
       structure: ->'scalar'
       contains: (v)->typeof v is "string"
-      includes: (t)-> t in [(scalar "string"), bottom() ]
+      includes: expand (t)-> t in [(scalar "string"), bottom() ]
     number:
+      applySubst: ->this
       describe: -> ['scalar','number']
       structure: -> 'scalar'
       contains: (v)->typeof v is "number"
-      includes: (t)-> t in [(scalar "number"), bottom() ]
+      includes: expand (t)-> t in [(scalar "number"), bottom() ]
     boolean:
+      applySubst: ->this
       describe: -> ['scalar','boolean']
       structure: -> 'scalar'
       contains: (v)->typeof v is "boolean"
-      includes: (t)-> t in [(scalar "boolean"), bottom() ]
+      includes: expand (t)-> t in [(scalar "boolean"), bottom() ]
   (kind="any")->scalarTypes[kind]
+
+
 document = (attrs)->
   structure: -> 'doc'
   attrs:attrs
-  describe: (resolve)->
+  applySubst: applySubst (s, path)->
+    attrs_ = {}
+    attrs_[key] = val.applySubst s, path for key,val of attrs
+    document attrs_
+    
+  describe: ()->
     d = {}
-    d[key] = value.describe(resolve) for key,value of attrs
+    d[key] = value.describe() for key,value of attrs
     ['document', d]
-  contains: (obj,resolve)->
+  contains: (obj)->
     return false unless obj?
     return false unless typeof obj is "object"
     return false if isArray obj
     for name, type of attrs
       value = obj[name]
       return false if value is undefined
-      return false unless type.contains value,resolve
+      return false unless type.contains value
     true
-  includes: (t,resolve)->
-    return true if t.structure(resolve) is "bottom"
-    return false unless t.structure(resolve) is "doc"
+  includes: expand (t)->
+    return true if t.structure() is "bottom"
+    return false unless t.structure() is "doc"
     for name, type0 of attrs
       type1 = t.attrs[name]
       return false unless type1?
-      return false unless type0.includes type1,resolve
+      return false unless type0.includes type1
     true
 
-describeNested = (resolve)-> 
-  nested = @nestedType.describe(resolve)
-  [@structure(resolve), nested...]
+describeNested = ()-> 
+  nested = @nestedType.describe()
+  [@structure(), nested...]
 
 dict = (nestedType)->
   describe: describeNested
   structure: ->'dict'
   nestedType:nestedType
-  contains: (obj,resolve)->
+  applySubst: applySubst (s,path)->
+    dict @nestedType.applySubst s,path
+  contains: (obj)->
     return false unless obj?
     return false unless typeof obj is "object"
     return false if isArray obj
     for _,value of obj
-      return false unless nestedType.contains value,resolve
+      return false unless nestedType.contains value
     true
-  includes: (t,resolve) ->
-    return true if t.structure(resolve) is "bottom"
-    return false unless t.structure(resolve) is "dict"
-    nestedType.includes t.nestedType, resolve
+  includes: expand (t) ->
+    return true if t.structure() is "bottom"
+    return false unless t.structure() is "dict"
+    nestedType.includes t.nestedType
 list = (nestedType)->
   structure: -> 'list'
   describe: describeNested
   nestedType:nestedType
-  contains: (obj,resolve)->
+  applySubst: applySubst (s,path)->
+    list @nestedType.applySubst s,path
+  contains: (obj)->
     return false unless obj?
     return false unless isArray obj
     for _,value of obj
-      return false unless nestedType.contains value,resolve
+      return false unless nestedType.contains value
     true
-  includes: (t,resolve) ->
-    return true if t.structure(resolve) is "bottom"
-    return false unless t.structure(resolve) is "list"
-    nestedType.includes t.nestedType, resolve
+  includes: expand (t) ->
+    return true if t.structure() is "bottom"
+    return false unless t.structure() is "list"
+    nestedType.includes t.nestedType
 optional = (nestedType)->
   nestedType: nestedType
   structure: -> 'optional'
   describe: describeNested
-  contains: (v,resolve)->
-    v is null or nestedType.contains v, resolve
-  includes: (t, resolve)->
-    switch t.structure(resolve)
+  applySubst: applySubst (s,path)->
+    optional @nestedType.applySubst s,path
+  contains: (v)->
+    v is null or nestedType.contains v
+  includes: expand (t)->
+    switch t.structure()
       when "bottom" then true
-      when "optional" then nestedType.includes t.nestedType, resolve
+      when "optional" then nestedType.includes t.nestedType
       when "nil" then true
-      else nestedType.includes t,resolve
+      else nestedType.includes t
 nil = do ->
   n=
     structure:-> 'nil'
     describe: ->['nil']
+    applySubst: ->this
     contains: (v)-> v is null
-    includes: (t,resolve)->
-      switch t.structure(resolve)
+    includes: expand -> (t)->
+      switch t.structure()
         when "bottom" then true
         when "nil" then true
-        when "optional" then t.nestedType.structure(resolve) is "nil"
+        when "optional" then t.nestedType.structure() is "nil"
         else false
   -> n
 bottom = do ->
   b=
     structure: ->'bottom'
     describe: ->['bottom']
+    applySubst: ->this
     contains: -> false
-    includes: (t)-> t is b
+    includes: expand (t)-> t is b
   -> b
 ref = (symbol)->
-  structure: (resolve0)->
-    [target, resolve] = resolve0?(symbol) ? [null, null]
-    target?.structure(resolve) ? 'ref'
+  structure: ()-> 'ref'
   symbol: symbol
-  describe: (resolve0)->
-    [target, resolve] = resolve0?(symbol) ? [null, null]
-    target?.describe(resolve) ? ['ref', symbol]
-  contains: (v,resolve)->
-    resolution = resolve0?(symbol) ? [null, null]
-    throw new Error "unresolved symbol #{symbol}" if not resolution?
-    [target, resolve] = resolution
-    target.contains(v, resolve)
-  includes: (t,resolve)->
-    resolution = resolve0?(symbol) ? [null, null]
-    throw new Error "unresolved symbol #{symbol}" if not resolution?
-    [target, resolve] = resolution
-    target.includes(v, resolve)
-
+  describe: ()->['ref', symbol]
+  applySubst: applySubst (s,path)->
+    t = s symbol
+    if t? then t.applySubst s, path else this
+    
+  contains: (v)->
+    throw new Error "unresolved symbol #{symbol}"
+  includes: expand (t)->
+    throw new Error "unresolved symbol #{symbol}"
+recursive = (depth)->
+  structure: -> "recursive"
+  describe: -> ['recursive', depth]
+  target:null
+  depth:->depth
+  contains:(v)->
+    if not @target?
+      throw new Error "dangling recursive reference"
+    @target.contains v
+  includes:(t)->
+    if not @target?
+      throw new Error "dangling recursive reference"
+    if t.structure() == "recursive"
+      #if both are recursion markers, we can assume that everything is fine:
+      #we would not have gotten here otherwise.
+      return true
+    else
+      # otherwise we "expand" another instance
+      @target.includes t
+      
 module.exports =
   construct:(description)->
     if description.length > 0
