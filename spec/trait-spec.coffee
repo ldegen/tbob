@@ -7,7 +7,7 @@ Attribute = require "../src/attribute"
 {optionalT, opaqueT, scalarT} = Type = require "../src/type"
 describe "A Trait", ->
 
-  
+
   f=undefined
   beforeEach ->
     f = new Factory()
@@ -15,7 +15,7 @@ describe "A Trait", ->
 
   it "describes attributes that can be applied to factories", ->
     t=Trait attributes:
-      bang: 
+      bang:
         fill: ->42
       bum:
         fill: (bang)->2*bang
@@ -39,11 +39,11 @@ describe "A application sequence", ->
     c = Trait deps: [a,b], alias: 'c'
     d = Trait deps: [a], alias: 'd'
     e = Trait deps: [], alias: 'e'
-  
+
   it "contains the net dependencies of a sequence of traits in topological order", ->
     s=Trait.sequence [b,e,d,c]
     expect(s.traits).to.eql [a,b,e,d,c]
-      
+
 
   it "is only valid if all dependency and ordering constraints can be fulfilled without closing a cycle", ->
     c_ = Trait deps: [b,a], alias: 'c_'
@@ -61,8 +61,77 @@ describe "A application sequence", ->
     expect(s.unsafeOverrides()).to.eql [
       ['foo',a,b]
     ]
-    
 
+  it "can detect attributes with unsatisfied dependencies", ->
+    a = Trait attributes:
+      foo:
+        type: scalarT "string"
+        deps: ['baz','bar']
+    b = Trait attributes:
+      bar:
+        type: scalarT "number"
+        deps: ['boing']
+      baz:
+        type: scalarT "number"
+    s = Trait.sequence [a,b]
+    expect(s.missingAttributes()).to.eql [
+      ['boing','bar',b]
+    ]
+  xit "can detect attribute dependency cycles" #TODO
+
+  it "can construct a document type if all attribute overrides are safe", ->
+    a = Trait attributes:
+      foo:
+        type: scalarT "string"
+        deps: ['baz','bar']
+    b = Trait attributes:
+      bar:
+        type: scalarT "number"
+        deps: ['baz']
+      baz:
+        type: scalarT "number"
+    s = Trait.sequence [a,b]
+    expect(s.type().describe()).to.eql [
+      'document'
+    ,
+      baz: ['scalar', 'number']
+      bar: ['scalar', 'number']
+      foo: ['scalar', 'string']
+    ]
+describe "Recursive Structures", ->
+  it "can be constructed using local aliasing", ->
+    b = Trait
+      attributes: foo: type: opaqueT()
+
+    t = Trait
+      alias: "con"
+      attributes:
+        head: type: opaqueT()
+        tail:
+          type: (w)->optionalT w
+          traits: ["con", b]
+
+    s = Trait
+      alias: "con"
+      attributes:
+        head: type: scalarT()
+        tail:
+          type: (w)->optionalT w
+          traits: ["con"]
+        foo: type: opaqueT()
+
+    tA = Trait
+      .sequence [t]
+      .type()
+
+    tB = Trait
+      .sequence [s]
+      .type()
+
+    #console.log "tA", JSON.stringify tA.describe(), null, " "
+    #console.log "tB", JSON.stringify tB.describe(), null, " "
+    expect(tA.includes tB).to.be.true
+    expect(tB.includes tA).to.be.false
 #
 # 2 A factory is defined by taking an empty factory and applying a sequence of traits.
 # 2.1 Applying a trait to a factory means adding the traits attributes to the factory.
@@ -90,7 +159,7 @@ describe "A application sequence", ->
 #   e) The value is a list and all elements are of type t.
 #
 #   f) The value is of a given type, or it is nil (i.e. absent).
-#   
+#
 #   g) The value is nil (i.e.: absent).
 #
 # There are types that are impossible to fulfill (at least by a finite value).

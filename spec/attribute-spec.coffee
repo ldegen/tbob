@@ -35,14 +35,36 @@ describe "An Attribute", ->
     expect(a.type()).to.equal t
 
   describe "with non-trivial value type", ->
+    Trait = require "../src/trait"
+
+    t0=t1=t2=undefined
+    beforeEach ->
+      t0 = Trait attributes: barf: opaqueT()
+      t1 = Trait deps:[t0], attributes: bang: opaqueT()
+      t2 = Trait attributes: boom: opaqueT()
+
+    it "attempts to resolve trait refs and construct a sequence", ->
+      a = Attribute "foo", traits: ["a symbol", t2], substitute: ->t1
+      expect(a.sequence().traits).to.eql [t0,t1,t2]
+
     it "can construct its (document) type when given a set of traitRefs", ->
-      a = Attribute "foo", traitRefs:["bang","baz"]
-      expect(a.type().describe()).to.eql ["ref",'bang,baz']
+      a = Attribute "foo", traits:[t0,t1]
+      expect(a.type().describe()).to.eql [
+        'document'
+      ,
+        barf: ['opaque']
+        bang: ['opaque']
+      ]
 
     it "can construct arbitrarily convoluted types", ->
-      a= Attribute "foo", traitRefs:["bang","baz"], type: (doc)->dictT listT doc
-      expect(a.type().describe()).to.eql ["dict","list","ref","bang,baz"]
+      a= Attribute "foo", traits:[t0,t1], type: (doc)->dictT listT doc
+      expect(a.type().describe()).to.eql [
+        "dict"
+        "list"
+        "document"
+        barf:['opaque']
+        bang:['opaque']
+      ]
 
     xit "will complain, if the type resulting from the traits is not consistent with the specified type", ->
-      a= Attribute "foo", traitRefs:["bang"], type: ()->listT documentT
-
+      a= Attribute "foo", traits:["bang"], type: ()->listT documentT

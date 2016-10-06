@@ -154,7 +154,7 @@ nil = do ->
     describe: ->['nil']
     applySubst: ->this
     contains: (v)-> v is null
-    includes: expand -> (t)->
+    includes: expand (t)->
       switch t.structure()
         when "bottom" then true
         when "nil" then true
@@ -184,6 +184,7 @@ ref = (symbol)->
 recursive = (depth)->
   structure: -> "recursive"
   describe: -> ['recursive', depth]
+  applySubst: -> this
   target:null
   depth:->depth
   contains:(v)->
