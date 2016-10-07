@@ -1,4 +1,5 @@
 {refT, documentT} = require "./type"
+Factory = require "./factory"
 instances = []
 instance = (id0=-1)->
   try
@@ -11,7 +12,7 @@ merge = (objs...)->
   q={}
   q[key]=value for key,value of o for o in objs
   q
-module.exports=(opts={})->
+Trait=(opts={})->
   Attribute = require "./attribute"
   attrSpecs = opts.attributes ? {}
   parent = opts.parent ? null
@@ -93,6 +94,10 @@ createTypeForSeq = (sortedTraits)->
       attrTypes[attrName] = attr.type()
   documentT attrTypes
 
+seqCache = {}
+sequence = (traits)->
+  key = traits.map (t)->t.id()
+  seqCache[key] ?= createSequence traits
 createSequence = (traits)->
   toposort = require "toposort"
   done = {}
@@ -135,9 +140,20 @@ createSequence = (traits)->
   type: -> typeForSeq sortedTraits
   unsafeOverrides: -> unsafeOverrides sortedTraits
   missingAttributes: -> missingAttributes sortedTraits
+  factory: -> 
+    factoryForTraits sortedTraits
+  
 
 
-seqCache = {}
-module.exports.sequence = (traits)->
-  key = traits.map (t)->t.id()
-  seqCache[key] ?= createSequence traits
+factoryCache = {}
+factoryForTraits = (sortedTraits)->
+  key = sortedTraits.map (t)->t.id()
+  factoryCache[key] ?= createFactory sortedTraits
+createFactory = (sortedTraits)->
+  factory = new Factory
+  trait.apply factory for trait in sortedTraits
+  factory
+  
+module.exports = Trait
+module.exports.sequence = sequence
+

@@ -16,6 +16,10 @@ applySubst= (impl) -> (s, path0=[]) ->
   replacement
     
 
+constructPlain = (build, spec)->
+  throw Error "missing value! (TODO: helpful error messages)" unless spec?
+  build spec
+
 expand = (impl) -> (t) ->
   if t.structure() == "recursive"
     throw new Error "dangling recursive reference" if not t.target?
@@ -25,6 +29,7 @@ expand = (impl) -> (t) ->
 
 opaque = do ->
   t=
+    constructValue: constructPlain
     structure: -> 'opaque'
     describe: -> ['opaque']
     applySubst: ->this
@@ -34,6 +39,7 @@ opaque = do ->
 scalar = do ->
   scalarTypes =
     any:
+      constructValue: constructPlain
       applySubst: ->this
       describe: ->['scalar','any']
       structure: -> 'scalar'
@@ -47,18 +53,21 @@ scalar = do ->
         bottom() 
       ]
     string:
+      constructValue: constructPlain
       applySubst: ->this
       describe: -> ['scalar','string']
       structure: ->'scalar'
       contains: (v)->typeof v is "string"
       includes: expand (t)-> t in [(scalar "string"), bottom() ]
     number:
+      constructValue: constructPlain
       applySubst: ->this
       describe: -> ['scalar','number']
       structure: -> 'scalar'
       contains: (v)->typeof v is "number"
       includes: expand (t)-> t in [(scalar "number"), bottom() ]
     boolean:
+      constructValue: constructPlain
       applySubst: ->this
       describe: -> ['scalar','boolean']
       structure: -> 'scalar'
@@ -68,6 +77,7 @@ scalar = do ->
 
 
 document = (attrs)->
+  constructValue: constructPlain
   structure: -> 'doc'
   attrs:attrs
   applySubst: applySubst (s, path)->
@@ -102,6 +112,10 @@ describeNested = ()->
   [@structure(), nested...]
 
 dict = (nestedType)->
+  constructValue: (build, spec)->
+    d = {}
+    d[key] = nestedType.constructValue build, value for key,value of spec
+    d
   describe: describeNested
   structure: ->'dict'
   nestedType:nestedType
@@ -119,6 +133,8 @@ dict = (nestedType)->
     return false unless t.structure() is "dict"
     nestedType.includes t.nestedType
 list = (nestedType)->
+  constructValue: (build, spec)->
+    (nestedType.constructValue build, value for value in spec)
   structure: -> 'list'
   describe: describeNested
   nestedType:nestedType
@@ -135,6 +151,8 @@ list = (nestedType)->
     return false unless t.structure() is "list"
     nestedType.includes t.nestedType
 optional = (nestedType)->
+  constructValue: (build, spec)->
+    if spec? then nestedType.constructValue build, spec else null
   nestedType: nestedType
   structure: -> 'optional'
   describe: describeNested
@@ -150,6 +168,7 @@ optional = (nestedType)->
       else nestedType.includes t
 nil = do ->
   n=
+    constructValue: -> null
     structure:-> 'nil'
     describe: ->['nil']
     applySubst: ->this
@@ -176,7 +195,8 @@ ref = (symbol)->
   applySubst: applySubst (s,path)->
     t = s symbol
     if t? then t.applySubst s, path else this
-    
+  constructValue: ->
+    throw new Error "unresolved symbol #{symbol}"
   contains: (v)->
     throw new Error "unresolved symbol #{symbol}"
   includes: expand (t)->
@@ -187,6 +207,10 @@ recursive = (depth)->
   applySubst: -> this
   target:null
   depth:->depth
+  constructValue:(build, spec)->
+    if not @target?
+      throw new Error "dangling recursive reference"
+    @target.constructValue build, spec
   contains:(v)->
     if not @target?
       throw new Error "dangling recursive reference"

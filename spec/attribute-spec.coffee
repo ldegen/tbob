@@ -1,7 +1,7 @@
 describe "An Attribute", ->
   {Factory} = require "rosie"
   Attribute = require "../src/attribute"
-  {documentT,dictT,listT,scalarT,opaqueT} = require "../src/type"
+  {documentT,dictT,listT,scalarT,opaqueT, optionalT} = require "../src/type"
 
   f=a=undefined
 
@@ -11,7 +11,7 @@ describe "An Attribute", ->
   it "can be added to a factory", ->
     a = Attribute "foo"
     a.apply f
-    expect(f.build()).to.eql foo:null
+    expect(f.build(foo:42)).to.eql foo:42
 
   it "knows how the attribute value should be filled on a new document", ->
     a = Attribute "foo", fill: ->42
@@ -39,9 +39,17 @@ describe "An Attribute", ->
 
     t0=t1=t2=undefined
     beforeEach ->
-      t0 = Trait attributes: barf: opaqueT()
-      t1 = Trait deps:[t0], attributes: bang: opaqueT()
-      t2 = Trait attributes: boom: opaqueT()
+      t0 = Trait
+        attributes: barf:
+          type: opaqueT()
+          fill: -> "Surprise!"
+      t1 = Trait
+        deps:[t0],
+        attributes: bang:
+          type: opaqueT()
+          fill: -> "small"
+      t2 = Trait
+        attributes: boom: type: opaqueT()
 
     it "attempts to resolve trait refs and construct a sequence", ->
       a = Attribute "foo", traits: ["a symbol", t2], substitute: ->t1
@@ -68,3 +76,77 @@ describe "An Attribute", ->
 
     xit "will complain, if the type resulting from the traits is not consistent with the specified type", ->
       a= Attribute "foo", traits:["bang"], type: ()->listT documentT
+
+    it "populates nested documents using an apropriate factory", ->
+      a = Attribute "foo", traits:[t0,t1]
+      a.apply f
+      expect(f.build()).to.eql
+        foo:
+          barf:"Surprise!"
+          bang:"small"
+
+    it "uses the configured fill strategy to create a fill spec by default", ->
+      a = Attribute "foo",
+        traits:[t0,t1]
+        fill: (torf)->
+          barf: "doppel-#{torf}"
+        deps: ["torf"]
+      a.apply f
+      f.option "torf", "gedöhns"
+      expect(f.build()).to.eql
+        foo:
+          barf: "doppel-gedöhns"
+          bang:"small"
+
+
+    it "accepts overrides specs", ->
+      a = Attribute "foo",
+        traits:[t0,t1]
+        fill: (torf)->
+          barf: "doppel-#{torf}"
+        deps: ["torf"]
+      a.apply f
+      f.option "torf", "gedöhns"
+      expect(f.build(
+        foo: bang: "big"
+      )).to.eql
+        foo:
+          barf: "Surprise!"
+          bang:"big"
+
+    it "calls fill strategy even though an override is present, if attribute name is included in deps", ->
+      a = Attribute "foo",
+        traits:[t0,t1]
+        fill: (torf,foo)->
+          console.log "foo",foo
+          barf: "#{foo?.bang}-#{torf}"
+          bang: foo?.bang
+        deps: ["torf","foo"]
+      a.apply f
+      f.option "torf", "gedöhns"
+      expect(f.build(
+        foo: bang: "big"
+      )).to.eql
+        foo:
+          barf: "big-gedöhns"
+          bang:"big"
+
+    it "correctly applies dict and list specs", ->
+      a = Attribute "foo", traits:[t0,t1], type: (t)->dictT listT optionalT t
+      a.apply f
+      expect(f.build(
+        foo:
+          gna: [{},null]
+          gnu: [bang:"big"]
+      )).to.eql
+        foo:
+          gna:[
+            barf:"Surprise!"
+            bang:"small"
+          ,
+            null
+          ]
+          gnu:[
+            barf: "Surprise!"
+            bang: "big"
+          ]
