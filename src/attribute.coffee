@@ -6,6 +6,7 @@ module.exports = (name, desc={})->
   optionSemantics =(factory,name,deps,fill)->
     factory.option name, deps, fill
   sequenceSemantics = (factory, name,deps,fill)->
+    throw new Error "sequences are not working correctly yet!"
     # need to flip first two args, because apply code expects first arg to be self ref
     factory.sequence name, deps, (pos,args...) -> fill args[0],pos, args[1...]...
 
@@ -46,8 +47,12 @@ module.exports = (name, desc={})->
       if seq? then seq.factory().build(fillSpec) else fillSpec
 
     semantics factory, name, [name,deps...], (self,attrs...)->
-      fillSpec = if self? and not (name in deps) then self else fill attrs...
-      type().constructValue build, fillSpec
+      fillSpec = if self? and not (name in deps) 
+        self  
+      else 
+        fill attrs...
+      val = type().constructValue build, fillSpec
+      val
 
         
   deps: ->deps

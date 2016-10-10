@@ -11,7 +11,7 @@ module.exports = (ruleSpecs0)->
       when 's' then (x)->typeof x is "string"
       when 'n' then (x)->typeof x is "number"
       when 'b' then (x)->typeof x is "boolean"
-      when 'o' then (x)->(typeof x is "object") and not isArray(x)
+      when 'o' then (x)->(typeof x is "object") and x? and not isArray(x)
       when 'f' then (x)->typeof x is "function"
       when 'a' then (x)->isArray x
       when '.' then ->true

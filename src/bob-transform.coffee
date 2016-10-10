@@ -1,13 +1,13 @@
-module.exports = (worldDefinition, Bob = require "./bob")->
+module.exports = (worldDefinition, dsl = require("./dsl"))->
   Transform = require("stream").Transform
   tf = new Transform
     objectMode:true
     transform: (scenarioSpec,_,done)->
       scenario =  {}
-      bob = Bob worldDefinition
+      world = dsl worldDefinition
 
       for alias, args of scenarioSpec
-        scenario[alias] = bob.build args...
+        scenario[alias] = world.build args...
       
       @push scenario
       done()
