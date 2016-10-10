@@ -31,12 +31,21 @@ Trait=(opts={})->
       attrs[key] = Attribute key, merge value, substitute: resolveTrait
   instances[id]=
     id:->id
+    label:->opts.alias ? id
     toString: ->opts.alias ? "Trait #{id}"
     dependencies: -> opts.deps ? []
     attributes: -> attrs
     apply: (factory)->
       for name, attr of attrs
         attr.apply factory
+    describe: ->
+      label: @label()
+      dependencies: @dependencies().map (d)->d.label()
+      parent: parent?.label?() ? null
+      attributes: do ->
+        obj={}
+        obj[name] = attr.type().describe() for name,attr of attrs
+        obj
 
 unsafeOverrides= (sortedTraits)->
   unsafe=[]
