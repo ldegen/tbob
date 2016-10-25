@@ -52,24 +52,51 @@ describe "The DSL", ->
         aktiv: ["opaque"]
       ]
 
-    #TODO Baustellg
-    xit "allows to define nested document types inline through 'anonymous' traits", ->
-      @factory "Projekt", ->
-        @attr "beteiligungen", @list ->
-          @attr "perId"
-          @attr "aktive", true
-
-  it "builds a world with a build function", ->
+    it "allows to define nested document types inline through 'anonymous' traits", ->
+      world = dsl ->
+        @factory "Projekt", ->
+          @attr "beteiligungen", @list ->
+            @attr "perId"
+            @attr "aktive", true
+      t= world
+        .trait "Projekt"
+      expect(t.describe().attributes.beteiligungen).to.eql [
+        "list"
+        "document"
+        aktive: ["opaque"]
+        perId: ["opaque"]
+      ]
+    
+    it "allows nesting inline traits to arbitrary depth", ->
 
       world = dsl ->
-        @factory "Beteiligung", ->
-          @attr "perId"
-          @trait "verstorben", ->
-            @attr "aktiv", false
         @factory "Projekt", ->
-          @attr "ehemalige",  @list @ref "Beteiligung", "verstorben"
-      doc1 = world.build "Beteiligung", "verstorben", perId:12
-      expect(doc1).to.eql
-        perId:12
-        aktiv:false
+          @attr "beteiligungen", @list ->
+            @attr "perId"
+            @attr "aktive", true
+            @attr "deeper", ->
+              @attr "and",  ->
+                @attr "deeper", @number, 0
+      t= world
+        .trait "Projekt"
+      expect(t.describe().attributes.beteiligungen).to.eql [
+        "list"
+        "document"
+        aktive: ["opaque"]
+        perId: ["opaque"]
+        deeper: ["document", and: ["document", deeper: ["scalar", "number"]]]
+      ]
+
+  it "builds a world with a build function", ->
+    world = dsl ->
+      @factory "Beteiligung", ->
+        @attr "perId"
+        @trait "verstorben", ->
+          @attr "aktiv", false
+      @factory "Projekt", ->
+        @attr "ehemalige",  @list @ref "Beteiligung", "verstorben"
+    doc1 = world.build "Beteiligung", "verstorben", perId:12
+    expect(doc1).to.eql
+      perId:12
+      aktiv:false
 

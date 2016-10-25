@@ -20,15 +20,24 @@ Trait=(opts={})->
   alias = opts.alias ? null
   id=instances.length
 
+  label= ->alias ? id
   parent = ()->
     symbol = opts.parent ? null
-    debug "resolving parent", symbol
-    resolveGlobal symbol
+    if symbol?
+      debug "resolving parent", symbol
+      obj = resolveGlobal symbol
+      if not obj
+        throw new Error "failed to resolve parent #{symbol} of #{label()}"
+      obj
 
   dependencies = ()->
     deps = opts.deps ? []
     debug "resolving dependencies", deps
-    deps.map resolveLocal
+    deps.map (symbol)->
+      obj = resolveLocal symbol
+      if not obj
+        throw new Error "failed to resolve dependency #{symbol} of #{label()}"
+      obj
 
   resolveGlobal= (symbol)->
     return symbol if not symbol? or typeof symbol is "object"
@@ -71,7 +80,7 @@ Trait=(opts={})->
   instances[id]=
     id:->id
     resolveLocal: resolveLocal
-    label:->opts.alias ? id
+    label: label
     toString: ->opts.alias ? "Trait #{id}"
     dependencies: dependencies
     attributes: -> attrs

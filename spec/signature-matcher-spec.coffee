@@ -8,6 +8,7 @@ describe "The Signature Matcher", ->
     it "matches an empty argument list", ->
       match = SigMatch [["",f]]
       expect(match()).to.eql []
+
   describe "s+", ->
     beforeEach ->
       f=(args...)->args
@@ -60,6 +61,9 @@ describe "The Signature Matcher", ->
     it "does *not* match arrays", ->
       match = SigMatch [["o*",f]]
       expect(match [1,2,3]).to.be.undefined
+    it "does *not* match functions", ->
+      match = SigMatch [["o*",f]]
+      expect(match (->)).to.be.undefined
 
   describe "with several rules", ->
     match = undefined
