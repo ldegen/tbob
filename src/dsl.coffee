@@ -4,7 +4,8 @@ module.exports = (body)->
   Trait = require "./trait"
   {optionalT, opaqueT, refT, listT, dictT, scalarT, nilT} = require "./type"
   namedTraits = undefined
-  lookupTrait = (name)-> namedTraits["$world$/"+name]
+  
+  lookupTrait = (name)-> namedTraits[name]
 
   merge = (objs...)->
     q={}
@@ -12,8 +13,8 @@ module.exports = (body)->
     q
 
   variant = (factoryName, traitNames...)->
-    absoluteTraitNames = traitNames.map (tn)->factoryName+"/"+tn
-    [factoryName, absoluteTraitNames...]
+    absoluteTraitNames = traitNames.map (tn)->"$world$/"+factoryName+"/"+tn
+    ["$world$/"+factoryName, absoluteTraitNames...]
 
 
   mk_cx =(name, parent, facade)->
@@ -46,10 +47,12 @@ module.exports = (body)->
     traits: (attrName)->
       nestedCx = mk_cx "$"+attrName+"$", cx,
         attr: attrDirective
+        extend: extendDirective
       
       body.call nestedCx.facade
 
       opts=
+        deps:(nestedCx.store "extend", "list") ? []
         alias: nestedCx.name
         resolveGlobal:lookupTrait
         attributes: nestedCx.store "attr"
@@ -136,6 +139,12 @@ module.exports = (body)->
         deps:[]
         fill: -> defaultValue
 
+  extendDirective = (cx)->(baseName, traitNames...)->
+    deps = (cx.store "extend", "list") ? []
+    deps.push (variant baseName, traitNames...)...
+    cx.store "extend", "list", deps
+    
+
   traitDirective = (factoryCx)->(traitName, body)->
     traitCx = mk_cx traitName, factoryCx,
       attr: attrDirective
@@ -146,8 +155,8 @@ module.exports = (body)->
       alias: traitName
       resolveGlobal:lookupTrait
       attributes: traitCx.store "attr"
-      deps: [factoryCx.name]
-      parent: factoryCx.name
+      deps: [factoryCx.path.join "/"]
+      parent: factoryCx.path.join "/"
 
     trait = Trait opts
     factoryCx.store "trait", traitName, trait
@@ -158,6 +167,7 @@ module.exports = (body)->
     factoryCx = mk_cx factoryName, worldCx,
       attr: attrDirective
       trait: traitDirective
+      extend: extendDirective
 
     body.call factoryCx.facade
     attributes = factoryCx.store "attr"
@@ -174,6 +184,7 @@ module.exports = (body)->
         attributes[attrName] ?= type:optionalT opaqueT()
 
     opts=
+      deps:(factoryCx.store "extend", "list") ? []
       resolveGlobal:lookupTrait
       attributes: attributes
       alias: factoryName
@@ -186,16 +197,18 @@ module.exports = (body)->
   for globalName, trait of worldCx.store "factory"
     namedTraits[globalName] = trait
     
-  trait: lookupTrait
+  sequence: (factoryName, traitNames...)->
+    absoluteTraitNames = variant factoryName, traitNames...
+    traits = absoluteTraitNames
+      .map (name)->
+        trait = lookupTrait name
+        if not trait?
+          throw new Error "failed to resolve trait #{name}"
+        trait
+    Trait.sequence traits
+  trait: (name)->lookupTrait "$world$/"+name
   build: SigMatch (match)->
     match "s,s*,o?", (factoryName, traitNames, fillSpec={})->
-      absoluteTraitNames = variant factoryName, traitNames...
-      traits = absoluteTraitNames
-        .map (name)->
-          trait = lookupTrait name
-          if not trait?
-            throw new Error "failed to resolve trait #{name}"
-          trait
-      Trait.sequence traits
+      @sequence factoryName, traitNames...
         .factory()
         .build fillSpec

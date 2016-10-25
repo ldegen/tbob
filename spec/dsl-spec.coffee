@@ -14,6 +14,33 @@ describe "The DSL", ->
         parent:null
         attributes:
           foo: ['opaque']
+    it "allows factories to extend other factories", ->
+      world = dsl ->
+        @factory "Bilingual", ->
+          @attr "de", @string, "deutscher Text"
+          @attr "en", @string, "English text"
+        @factory "WithKey", ->
+          @attr "key", @string, "FOO"
+        @factory "LookupEntry", ->
+          @extend "Bilingual"
+          @extend "WithKey"
+          @attr "description", @string, ["key"], (key)->"a description for #{key}"
+      s=world.sequence "LookupEntry"
+      t=world.trait "LookupEntry"
+      expect(t.describe()).to.eql
+        label: "LookupEntry"
+        dependencies: ["Bilingual","WithKey"]
+        parent: null
+        attributes:
+          description:["scalar","string"]
+      expect(s.type().describe()).to.eql [
+        "document"
+        de:["scalar","string"]
+        en:["scalar","string"]
+        key:["scalar","string"]
+        description:["scalar","string"]
+      ]
+
 
   describe "when describing factory-specific traits", ->
     beforeEach ->
@@ -67,8 +94,29 @@ describe "The DSL", ->
         perId: ["opaque"]
       ]
     
-    it "allows nesting inline traits to arbitrary depth", ->
+    it "allows inline traits to extend known variants", ->
+      world = dsl ->
+        @factory "Beteiligung", ->
+          @attr "perId"
+          @trait "verstorben", ->
+            @attr "aktiv", false
+        @factory "Projekt", ->
+          @attr "ehemalige", @list ->
+            @extend "Beteiligung", "verstorben"
+            @attr "rolle", @string, "PAN"
+  
+      t= world
+          .trait "Projekt"
+      expect(t.describe().attributes.ehemalige).to.eql [
+        "list"
+        "document"
+        aktiv: ["opaque"]
+        perId: ["opaque"]
+        rolle: ["scalar", "string"]
+      ]
+      
 
+    it "allows nesting inline traits to arbitrary depth", ->
       world = dsl ->
         @factory "Projekt", ->
           @attr "beteiligungen", @list ->
