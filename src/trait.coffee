@@ -7,7 +7,8 @@ instance = (id0=-1)->
     instances[id]
   catch e
     null
-
+#debug = (args...) -> debug args...
+debug = ->
 merge = (objs...)->
   q={}
   q[key]=value for key,value of o for o in objs
@@ -15,25 +16,64 @@ merge = (objs...)->
 Trait=(opts={})->
   Attribute = require "./attribute"
   attrSpecs = opts.attributes ? {}
-  parent = opts.parent ? null
+  attrs = {}
   alias = opts.alias ? null
   id=instances.length
-  resolveTrait= (symbol)->
+
+  parent = ()->
+    symbol = opts.parent ? null
+    debug "resolving parent", symbol
+    resolveGlobal symbol
+
+  dependencies = ()->
+    deps = opts.deps ? []
+    debug "resolving dependencies", deps
+    deps.map resolveLocal
+
+  resolveGlobal= (symbol)->
+    return symbol if not symbol? or typeof symbol is "object"
+    debug "resolve global", symbol
+    obj=opts.resolveGlobal? symbol
+    debug "resolved (global): ", symbol, obj
+    obj
+
+  resolveLocal= (symbol)->
+    return symbol if not symbol? or typeof symbol is "object"
+    debug "resolve local", symbol
     if opts.alias == symbol
       self = instance id
+      debug "resolved (via local alias): ",symbol, self
       return self
-    if parent? then parent.resolveTrait symbol else instance symbol
-  attrs = {}
+
+    obj = parent()?.resolveLocal? symbol 
+    if obj?
+      debug "resolved (via parent):", symbol, obj
+      return obj
+
+    obj = instance symbol 
+    if obj?
+      debug "resolved (via id-match):", symbol, obj
+      return obj
+    
+    obj = resolveGlobal symbol
+    if obj?
+      debug "resolved (via global lookup):", symbol, obj
+      return obj
+
+    debug "not resolved:", symbol
+
   for key,value of attrSpecs
     if value instanceof Attribute
       attrs[key] = value
     else
-      attrs[key] = Attribute key, merge value, substitute: resolveTrait
+      attrs[key] = Attribute key, merge value, substitute: resolveLocal
+
   instances[id]=
     id:->id
+    resolveLocal: resolveLocal
     label:->opts.alias ? id
     toString: ->opts.alias ? "Trait #{id}"
-    dependencies: -> opts.deps ? []
+    dependencies: dependencies
     attributes: -> attrs
     apply: (factory)->
       for name, attr of attrs
@@ -41,7 +81,7 @@ Trait=(opts={})->
     describe: ->
       label: @label()
       dependencies: @dependencies().map (d)->d.label()
-      parent: parent?.label?() ? null
+      parent: parent()?.label?() ? null
       attributes: do ->
         obj={}
         obj[name] = attr.type().describe() for name,attr of attrs
@@ -112,6 +152,8 @@ createSequence = (traits)->
   done = {}
   # adds implicit dependencies to ensure traits order
   augment = (t,i,arr)->
+    if typeof t.id isnt "function"
+      debug "t", t
     id:t.id()
     trait: t
     pre: if i>0 then [t.dependencies()...,arr[i-1]] else t.dependencies().slice()
@@ -122,6 +164,7 @@ createSequence = (traits)->
     v = todo.pop()
     if not done[v.id]?
       done[v.id] =v
+      debug "children", v.trait.dependencies()
       children = v.trait.dependencies()
         .map augment
         .reverse()

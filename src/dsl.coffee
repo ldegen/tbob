@@ -1,120 +1,144 @@
 module.exports = (body)->
+
   SigMatch = require "./signature-matcher"
   Trait = require "./trait"
   {optionalT, opaqueT, refT, listT, dictT, scalarT, nilT} = require "./type"
-  namedTraits = {}
+  namedTraits = undefined
   lookupTrait = (name)-> namedTraits[name]
+
+  merge = (objs...)->
+    q={}
+    q[key]=value for key,value of o for o in objs
+    q
 
   variant = (factoryName, traitNames...)->
     absoluteTraitNames = traitNames.map (tn)->factoryName+"/"+tn
     [factoryName, absoluteTraitNames...]
 
-  refDirective = (factoryName, traitNames...)->
+
+  mk_cx =(name, parent, facade)->
+    store = {}
+    cx=
+      name: name
+      path: [ (parent?.path ? [])..., name ]
+      parent: parent
+      facade: {}
+      store:(type,name, value)->
+        typeStore = store[type] ?= {}
+        if value?
+          typeStore[name]=value
+        else if name?
+          typeStore[name]
+        else
+          typeStore
+      children:{}
+
+    # apply context to directives exposed in the facade.
+    # Note that type expressions are always included.
+    cx.facade[key] = directive cx, key for key, directive of merge typeExpressions, facade
+    parent.children[name] = cx if parent?
+    cx
+
+
+
+  refTypeExpr = (cx)->(factoryName, traitNames...)->
     traits: -> variant factoryName, traitNames...
     type:(leaf)->leaf
-
-  skalarTypeDirective = (kind)->
+  skalarTypeExpr = (kind)->(cx)->
     traits:-> null
     type: ->scalarT kind
-  nestedTypeDirective = (wrappingType)->(nested)->
+  nestedTypeExpr = (wrappingType)->(cx)->(nested)->
     traits: nested.traits
     type: (leaf)->wrappingType nested.type leaf
-  nilDirective = 
+  nilTypeExpr = (cx)->
     traits: -> null
     type: -> nilT()
-  opaqueDirective = 
+  opaqueTypeExpr = (cx)->
     traits: -> null
     type: -> opaqueT()
 
-  attrDirective = (store)-> SigMatch (match)->
+  typeExpressions =
+    ref: refTypeExpr
+    list: nestedTypeExpr listT
+    dict: nestedTypeExpr dictT
+    optional: nestedTypeExpr optionalT
+    number: skalarTypeExpr "number"
+    string: skalarTypeExpr "string"
+    boolean: skalarTypeExpr "boolean"
+    nil: nilTypeExpr
+    opaque: opaqueTypeExpr
+
+  attrDirective = (cx)-> SigMatch (match)->
     match "s,o,a,f", (attrName, typeExpr, dependencies, fillStrategy)->
-      #console.log "attrDirective_1", attrName, typeExpr, dependencies, fillStrategy
-      store[attrName]=
+      cx.store "attr", attrName,
         deps:dependencies
         fill:fillStrategy
         type: typeExpr.type
         traits: typeExpr.traits attrName
     match "s,o,.?", (attrName, typeExpr, fillSpec) ->
-      #console.log "attrDirective_2", attrName, typeExpr, fillSpec
-      store[attrName]=
+      cx.store "attr", attrName,
         deps: []
         fill: -> fillSpec
         type: typeExpr.type
         traits: typeExpr.traits attrName
     match "s,a,f", (attrName, dependencies, fillStrategy)->
-      #console.log "attrDirective_3", attrName, dependencies, fillStrategy
-      store[attrName]=
+      cx.store "attr", attrName,
         deps: dependencies
         fill: fillStrategy
     match "s,.", (attrName, defaultValue)->
-      #console.log "attrDirective_4", attrName, defaultValue
-      store[attrName]=
+      cx.store "attr", attrName,
         deps:[]
         fill: -> defaultValue
 
-  traitDirective = (traitStore,inlineStore)->(traitName, body)->
-    traitOpts = 
-      alias:traitName
-      #parent link is inkjekted when parent is build
-      deps:[] # deps dito
-    body.call traitCx this, traitOpts, inlineStore
-    traitStore[traitName] = traitOpts
+  traitDirective = (factoryCx)->(traitName, body)->
+    traitCx = mk_cx traitName, factoryCx,
+      attr: attrDirective
 
+    body.call traitCx.facade
 
-  factoryDirective = (factoryStore)->(factoryName, body)->
-    factoryOpts = 
-      alias:factoryName
-      parent: resolveTrait: lookupTrait
-    traitStore = {} # @trait-directive puts its options here
-    inlineStore = {} # inline trait defs put their options here
-    body.call factoryCx this, factoryOpts, traitStore, inlineStore
+    opts=
+      alias: traitName
+      resolveGlobal:lookupTrait
+      attributes: traitCx.store "attr"
+      deps: [factoryCx.name]
+      parent: factoryCx.name
 
-    # make sure all trait attributes exist in factory
-    for traitName, traitOpts of traitStore
-      for attrName, attrOpts of traitOpts.attributes
+    factoryCx.store "trait", traitName, Trait opts
+
+  factoryDirective = (worldCx) -> (factoryName, body)->
+    factoryCx = mk_cx factoryName, worldCx,
+      attr: attrDirective
+      trait: traitDirective
+
+    body.call factoryCx.facade
+    attributes = factoryCx.store "attr"
+    traits = factoryCx.store "trait"
+    for traitName, trait of traits
+      # factory-specific traits are made available as toplevel factories
+      worldCx.store "factory", factoryName+"/"+traitName, trait
+
+      # make sure attributes introduced in factorory-specific triats are
+      # included in the owning factory.
+      for attrName, _ of trait.attributes()
         # the most general type is "optional opaque". It contains any value, including nil.
         # TODO: it would be more intuitive if we could actually compute a least upper bound
         # from all concrete types used in the traits. One way to do this would be to introduce
         # union types.
-        factoryOpts.attributes[attrName] ?= type:optionalT opaqueT()
+        attributes[attrName] ?= type:optionalT opaqueT()
 
-    factory = factoryStore[factoryName]=Trait factoryOpts
-    for attrName, inlineOpts of inlineStore
-      inlineOpts.parent = factory
-    for traitName, traitOpts of traitStore
-      traitOpts.parent = factory
-      traitOpts.deps.push factory
-      factoryStore[factoryName+"/"+traitName] = Trait traitOpts
+    opts=
+      resolveGlobal:lookupTrait
+      attributes: attributes
+      alias: factoryName
+    worldCx.store "factory", factoryName, Trait opts
 
-  typeExpressionDirectives = ->
-    ref: refDirective
-    list: nestedTypeDirective listT
-    dict: nestedTypeDirective dictT
-    optional: nestedTypeDirective optionalT
-    number: skalarTypeDirective "number"
-    string: skalarTypeDirective "string"
-    boolean: skalarTypeDirective "boolean"
-    nil: nilDirective
-    opaque: opaqueDirective
 
-  factoryCx = (parent, opts,traitStore, inlineStore)->
-    opts.attributes ?= {}
-    cx = typeExpressionDirectives(inlineStore)
-    cx._prefix=parent._prefix+"/"+opts.alias
-    cx.attr= attrDirective opts.attributes
-    cx.trait= traitDirective  traitStore
-    cx
-  traitCx = (parent, opts, inlineStore) ->
-    opts.attributes ?= {}
-    cx = typeExpressionDirectives(inlineStore)
-    cx._prefix=parent._prefix+"/"+opts.alias
-    cx.attr= attrDirective opts.attributes
-    cx
-  worldCx = (store)->
-    _prefix:""
-    factory: factoryDirective store
-
-  body.call worldCx namedTraits
+  worldCx = mk_cx "$world$",null, factory: factoryDirective
+  body.call worldCx.facade
+  namedTraits = {}
+  for globalName, trait of worldCx.store "factory"
+    namedTraits[globalName] = trait
+    
   trait: lookupTrait
   build: SigMatch (match)->
     match "s,s*,o?", (factoryName, traitNames, fillSpec={})->
