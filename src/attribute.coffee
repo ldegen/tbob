@@ -56,6 +56,7 @@ module.exports = (name, desc={})->
 
         
   deps: ->deps
+  meta: ->desc.meta ? {}
   type: type
   traits: ()->
   sequence: sequence

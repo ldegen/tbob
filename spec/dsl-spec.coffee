@@ -14,6 +14,21 @@ describe "The DSL", ->
         parent:null
         attributes:
           foo: ['opaque']
+    it "can attach metadata to factories", ->
+      world = dsl ->
+        @factory "Projekt", ->
+          @meta es:dynamic:false
+          @attr "foo", 42
+      s=world.sequence "Projekt"
+      expect(s.type().describe()).to.eql [
+        "document"
+      ,
+        foo: ['opaque']
+      ,
+        self:
+          es:
+            dynamic: false
+      ]
     it "allows factories to extend other factories", ->
       world = dsl ->
         @factory "Bilingual", ->
@@ -93,7 +108,7 @@ describe "The DSL", ->
         aktive: ["opaque"]
         perId: ["opaque"]
       ]
-    
+
     it "allows inline traits to extend known variants", ->
       world = dsl ->
         @factory "Beteiligung", ->
@@ -104,7 +119,7 @@ describe "The DSL", ->
           @attr "ehemalige", @list ->
             @extend "Beteiligung", "verstorben"
             @attr "rolle", @string, "PAN"
-  
+
       t= world
           .trait "Projekt"
       expect(t.describe().attributes.ehemalige).to.eql [
@@ -114,7 +129,7 @@ describe "The DSL", ->
         perId: ["opaque"]
         rolle: ["scalar", "string"]
       ]
-      
+
 
     it "allows nesting inline traits to arbitrary depth", ->
       world = dsl ->
@@ -133,6 +148,38 @@ describe "The DSL", ->
         aktive: ["opaque"]
         perId: ["opaque"]
         deeper: ["document", and: ["document", deeper: ["scalar", "number"]]]
+      ]
+
+    it "supports an alternative, more flexible fluent syntax", ->
+      world = dsl ->
+        @factory "Projekt", ->
+          @attr "beteiligungen"
+            .fill [{}]
+            .type @list ->
+              @attr "perId"
+                .type @number
+                .fill 42
+              @attr "aktiv", true
+      expect(world.sequence("Projekt").type().describe()).to.eql [
+        "document"
+        beteiligungen:[
+          "list"
+          "document"
+          perId: ["scalar","number"]
+          aktiv: ["opaque"]
+        ]
+      ]
+    it "can attach metadata to attributes via the fluent syntax", ->
+      world = dsl ->
+        @factory "Projekt", ->
+          @attr "title"
+            .meta es:index:"analyzed"
+      expect(world.sequence("Projekt").type().describe()).to.eql [
+        "document"
+      ,
+        title: ["opaque"]
+      ,
+        attributes: title: es:index:"analyzed"
       ]
 
   it "builds a world with a build function", ->

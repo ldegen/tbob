@@ -40,11 +40,10 @@ module.exports = (process)->
     new Transform
       objectMode: true
       transform: (chunk, encoding, done)->
-        @push sexp chunk
+        if chunk?.trim().length > 0
+          spec = sexp chunk
+          @push spec
         done()
-
-        
-
 
   parseJson = ->
     new Transform 
@@ -57,14 +56,17 @@ module.exports = (process)->
     new Transform
       objectMode:true
       transform: (chunk,encoding, done)->
-        @push yaml.safeLoad chunk if chunk?.length
+        @push yaml.safeLoad chunk if chunk?.trim().length > 0
         done()
 
   stringify = ->
     new Transform
       objectMode:true
       transform: (chunk, encoding, done)->
-        @push JSON.stringify chunk
+        if chunk?
+          @push JSON.stringify(chunk)+"\n"
+        else
+          console.log "chunk undefined?"
         done()
   output = stringify()
   output.pipe process.stdout if process.stdout?

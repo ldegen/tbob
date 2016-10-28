@@ -98,6 +98,49 @@ describe "A application sequence", ->
       bar: ['scalar', 'number']
       foo: ['scalar', 'string']
     ]
+  it "merges metadata from all involved traits", ->
+    a = Trait 
+      meta:
+        fump:4
+        fonk:42
+      attributes:
+        foo:
+          type: scalarT "string"
+        bar:
+          type: scalarT "any"
+          meta: 
+            boing: 2
+            bumm: 3
+    b = Trait 
+      meta:
+        fump:2
+        fnord:3
+      attributes:
+        bar:
+          type: scalarT "number"
+          meta: 
+            bumm:4
+            krach:5
+        baz:
+          type: scalarT "number"
+    s = Trait.sequence [a,b]
+    expect(s.type().describe()).to.eql [
+      'document'
+    ,
+      baz: ['scalar', 'number']
+      bar: ['scalar', 'number']
+      foo: ['scalar', 'string']
+    ,
+      attributes:
+        bar:
+          boing:2
+          bumm:4
+          krach:5
+      self:
+        fump:2
+        fonk:42
+        fnord:3
+    ]
 describe "Recursive Structures", ->
   it "can be constructed using local aliasing", ->
     b = Trait

@@ -45,6 +45,15 @@ describe "The Signature Matcher", ->
       match = SigMatch [["a?,a?,a?",f]]
       expect(match [1],[2]).to.eql [[1],[2],null]
 
+  describe ".", ->
+    it "matches a single attribute", ->
+      match = SigMatch [[".",f]]
+      expect(match 42).to.eql [42]
+      expect(match 42, 32).to.be.undefined
+    it "does not match undefined", ->
+      match = SigMatch [["s,.",f]]
+      expect(match "bla",42).to.eql ["bla",42]
+      expect(match "bla").to.be.undefined
   describe ".*", ->
     it "matches anything", ->
       match = SigMatch [[".*",f]]

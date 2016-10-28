@@ -19,7 +19,7 @@ describe "Types", ->
 #   g) The value is nil (i.e.: absent).
 #
 
-  {opaqueT, scalarT, documentT, dictT, listT, optionalT, nilT, bottomT, refT } = require "../src/type"
+  {opaqueT, scalarT, documentT, dictT, listT, optionalT, nilT, bottomT, refT, construct } = require "../src/type"
   describe "a) The opaque type", ->
 
     t = opaqueT()
@@ -309,3 +309,27 @@ describe "Types", ->
       expect(finite.includes t2).to.be.true
       expect(t2.includes finite).to.be.false #no, because beyond the first three 
                                              #elms, the structure is not specified!
+  describe "any type", ->
+    it "can be constructed from a description", ->
+      t0 = construct [
+        "document"
+      ,
+        key: ['scalar', 'string']
+        children: ['list', 'ref', 'foobar']
+      ,
+        self: es: dynamic: false
+        attributes: key: es: index:'analyzed'
+      ]
+
+      t = t0.applySubst -> t0
+
+      expect(t.describe()).to.eql [
+        "document"
+      ,
+        key: ['scalar', 'string']
+        children: ['list', 'recursive', 2]
+      ,
+        self: es: dynamic: false
+        attributes: key: es: index:'analyzed'
+      ]
+

@@ -84,6 +84,7 @@ Trait=(opts={})->
     toString: ->opts.alias ? "Trait #{id}"
     dependencies: dependencies
     attributes: -> attrs
+    meta: -> opts.meta ? {}
     apply: (factory)->
       for name, attr of attrs
         attr.apply factory
@@ -147,10 +148,20 @@ createTypeForSeq = (sortedTraits)->
     throw new Error "unsafe overrides: #{unsafe.toString()}"
 
   attrTypes={}
+  meta= undefined
   for trait in sortedTraits
     for attrName, attr of trait.attributes()
       attrTypes[attrName] = attr.type()
-  documentT attrTypes
+      for key,value of attr.meta()
+        meta ?= {}
+        meta.attributes ?= {}
+        meta.attributes[attrName] ?= {}
+        meta.attributes[attrName][key]=value
+    for key,value of trait.meta()
+      meta ?= {}
+      meta.self ?= {}
+      meta.self[key]=value
+  documentT attrTypes, meta
 
 seqCache = {}
 sequence = (traits)->

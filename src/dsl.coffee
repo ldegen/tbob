@@ -79,7 +79,6 @@ module.exports = (body)->
     type: ->scalarT kind
   nestedTypeExpr = (wrappingType)->(cx)->(nested)->
     if typeof nested is "function"
-      console.log "hier"
       inlineType cx, nested, wrappingType
     else
       traits: nested.traits
@@ -133,17 +132,49 @@ module.exports = (body)->
       cx.store "attr", attrName,
         deps: dependencies
         fill: fillStrategy
-
     match "s,.", (attrName, defaultValue)->
       cx.store "attr", attrName,
         deps:[]
         fill: -> defaultValue
+    match "s", (attrName)->
+      attrBuilder cx, attrName
+    match ".*", (args...)-> throw new Error("wrong signature for @attr: #{args}")
+
+  attrBuilder = (cx,name)->
+    opts = {}
+    cx.store "attr", name, opts
+    meta: (metadata)->
+      opts.meta=metadata
+      this
+    type: SigMatch (match)->
+      match "o", (typeExpr)->
+        opts.type= typeExpr.type
+        opts.traits= typeExpr.traits name
+        this
+      match "f", (body)->
+        typeExpr = inlineType cx, body
+        opts.type= typeExpr.type
+        opts.traits= typeExpr.traits name
+        this
+      match ".*", (args...)-> throw new Error("wrong signature for @attr.this")
+    fill: SigMatch (match)->
+      match "a,f", (dependencies, fillStrategy)->
+        opts.deps = dependencies
+        opts.fill = fillStrategy
+        this
+      match ".", (fillSpec)->
+        opts.deps=[]
+        opts.fill= -> fillSpec
+        this
+      match ".*", (args...)-> throw new Error("wrong signature for @attr.fill")
 
   extendDirective = (cx)->(baseName, traitNames...)->
     deps = (cx.store "extend", "list") ? []
     deps.push (variant baseName, traitNames...)...
     cx.store "extend", "list", deps
     
+  metaDirective = (cx)->(metadata)->
+    cx.store "meta", name, value for name,value of metadata
 
   traitDirective = (factoryCx)->(traitName, body)->
     traitCx = mk_cx traitName, factoryCx,
@@ -155,6 +186,7 @@ module.exports = (body)->
       alias: traitName
       resolveGlobal:lookupTrait
       attributes: traitCx.store "attr"
+      meta: traitCx.store "meta"
       deps: [factoryCx.path.join "/"]
       parent: factoryCx.path.join "/"
 
@@ -168,6 +200,7 @@ module.exports = (body)->
       attr: attrDirective
       trait: traitDirective
       extend: extendDirective
+      meta: metaDirective
 
     body.call factoryCx.facade
     attributes = factoryCx.store "attr"
@@ -188,6 +221,7 @@ module.exports = (body)->
       resolveGlobal:lookupTrait
       attributes: attributes
       alias: factoryName
+      meta: factoryCx.store "meta"
     worldCx.store "factory", (factoryCx.path.join "/"), Trait opts
 
 
@@ -208,7 +242,13 @@ module.exports = (body)->
     Trait.sequence traits
   trait: (name)->lookupTrait "$world$/"+name
   build: SigMatch (match)->
+    match "s,s*,a?", (factoryName, traitNames, fillSpec=[])->
+      @sequence factoryName, traitNames...
+        .factory()
+        .build fillSpec
     match "s,s*,o?", (factoryName, traitNames, fillSpec={})->
       @sequence factoryName, traitNames...
         .factory()
         .build fillSpec
+    match ".*", ->
+      throw new Error "don't know what to do"

@@ -14,7 +14,7 @@ module.exports = (ruleSpecs0)->
       when 'o' then (x)->(typeof x is "object") and x? and not isArray(x)
       when 'f' then (x)->typeof x is "function"
       when 'a' then (x)->isArray x
-      when '.' then ->true
+      when '.' then (x)->typeof x isnt "undefined"
       else throw new Error "Don't know how to test for type '#{type}'"
 
   matcher = (type, multiplicity='')->

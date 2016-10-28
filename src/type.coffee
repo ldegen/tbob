@@ -1,15 +1,6 @@
 isArray = require("util").isArray
 
-list2obj = (list)->
-  obj = undefined
-  if list.length == 0
-    obj = {}
-  else
-    [key, val, rest...] = list
-    obj = list2obj rest
-    obj[key] = val
-  obj
-
+list2obj = require "./list2obj"
 applySubst= (impl) -> (s, path0=[]) ->
   i = path0.indexOf this
   if i!=-1
@@ -85,20 +76,21 @@ scalar = do ->
   (kind="any")->scalarTypes[kind]
 
 
-document = (attrs)->
-  constructValue:(build,spec)->
-    constructPlain build, if isArray spec then list2obj spec else spec
+document = (attrs,meta=null)->
+  constructValue:(build,spec0)->
+    spec = if isArray spec0 then list2obj spec0 else spec0
+    constructPlain build, spec
   structure: -> 'doc'
   attrs:attrs
   applySubst: applySubst (s, path)->
     attrs_ = {}
     attrs_[key] = val.applySubst s, path for key,val of attrs
-    document attrs_
+    document attrs_,meta
     
   describe: ()->
     d = {}
     d[key] = value.describe() for key,value of attrs
-    ['document', d]
+    if meta? then ['document',d,meta] else ['document', d]
   contains: (obj)->
     return false unless obj?
     return false unless typeof obj is "object"
@@ -237,18 +229,34 @@ recursive = (depth)->
       # otherwise we "expand" another instance
       @target.includes t
       
-module.exports =
+module.exports = Type =
   construct:(description)->
-    if description.length > 0
-      [head, tail...] = description
-      if typeof head is "string" and @hasOwnProperty head+'T'
-        constructor = this[head+'T']
-        arg = @construct tail
-        constructor.call this, arg
-      else if tail.length > 0
-        throw new Error "too many arguments: #{tail}"
+    throw new Error "please tell me what you want to construct" if not description?.length
+    [head, tail...] = description
+    #head is always a functor.
+    functor = Type[head+'T']
+    throw new Error "bad functor: #{head}" if not functor?
+    switch head
+      when "dict", "list", "optional"
+        # for "modifying" type functors, process tail recursively and
+        # pass resulting type as single arg.
+        arg = Type.construct tail
+        functor.call Type, arg
+      when "document"
+        # we need to process attribute types recursively
+        throw new Error "too many arguments: #{description}" if tail.length > 2
+        [attrDescriptions, meta] = tail
+        attrs = {}
+        attrs[key] = Type.construct attrDescription for key, attrDescription of attrDescriptions
+        functor.call Type, attrs, meta
       else
-        head
+        # otherwise we are at a "leaf" type. In this case the current functor
+        # should consume any remaining elements.
+        # Check tail length and raise error if it is too long.
+        throw new Error "too many arguments: #{description}" if tail.length > functor.length
+
+        # Apply functor to tail.
+        functor.apply Type, tail
 
 
   opaqueT:opaque

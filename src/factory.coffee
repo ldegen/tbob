@@ -1,4 +1,5 @@
 {Factory}= require "rosie"
+list2obj = require "./list2obj"
 module.exports = class MyFactory extends Factory
   constructor: (attrs...)->
     delegatee = new Factory attrs...
@@ -8,7 +9,8 @@ module.exports = class MyFactory extends Factory
       if typeof value is "function" and key[0] isnt "_"
         forward key, value, this
 
-    @build = (attrsAndOpts)->
+    @build = (attrsAndOpts0)->
+      attrsAndOpts = list2obj attrsAndOpts0
       attrs={}
       opts={}
       for name, value of attrsAndOpts
