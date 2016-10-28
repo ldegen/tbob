@@ -1,14 +1,17 @@
 module.exports = (process)->
 
   Transform = require("stream").Transform
+  isArray = require("util").isArray
   yaml = require 'js-yaml'
   fs = require 'fs'
   path = require 'path'
+  minimist = require "minimist"
   splitLines = require "split"
   splitDocs = require "./lines-to-yaml-docs"
   walkdir = require "walkdir"
+  sexp = require "sexp"
 
-
+  argv = minimist process.argv.slice 2
   GEPRIS_HOME = process.env.GEPRIS_HOME
 
   if not GEPRIS_HOME?
@@ -32,6 +35,24 @@ module.exports = (process)->
     console.warn "No factory definitions found in #{worldDir}"
 
 
+
+  parseSexp = ->
+    new Transform
+      objectMode: true
+      transform: (chunk, encoding, done)->
+        @push sexp chunk
+        done()
+
+        
+
+
+  parseJson = ->
+    new Transform 
+      objectMode:true
+      transform: (chunk, encoding, done)->
+        @push JSON.parse chunk if chunk.trim().length>0
+        done()
+
   parseYaml = ->
     new Transform
       objectMode:true
@@ -47,11 +68,20 @@ module.exports = (process)->
         done()
   output = stringify()
   output.pipe process.stdout if process.stdout?
-  input:
-    process.stdin
-    .pipe splitLines()
-    .pipe splitDocs()
-    .pipe parseYaml()
+  input: switch argv.f
+      when "yaml"
+        process.stdin
+        .pipe splitLines()
+        .pipe splitDocs()
+        .pipe parseYaml()
+      when "sexp"
+        process.stdin
+        .pipe splitLines()
+        .pipe parseSexp()
+      else
+        process.stdin
+        .pipe splitLines()
+        .pipe parseJson()
   output: output
   world: ->
     def.call(this) for def in worldDefs

@@ -1,5 +1,14 @@
 isArray = require("util").isArray
 
+list2obj = (list)->
+  obj = undefined
+  if list.length == 0
+    obj = {}
+  else
+    [key, val, rest...] = list
+    obj = list2obj rest
+    obj[key] = val
+  obj
 
 applySubst= (impl) -> (s, path0=[]) ->
   i = path0.indexOf this
@@ -77,7 +86,8 @@ scalar = do ->
 
 
 document = (attrs)->
-  constructValue: constructPlain
+  constructValue:(build,spec)->
+    constructPlain build, if isArray spec then list2obj spec else spec
   structure: -> 'doc'
   attrs:attrs
   applySubst: applySubst (s, path)->
@@ -112,7 +122,8 @@ describeNested = ()->
   [@structure(), nested...]
 
 dict = (nestedType)->
-  constructValue: (build, spec)->
+  constructValue: (build, spec0)->
+    spec = if isArray spec0 then list2obj spec0 else spec0
     d = {}
     d[key] = nestedType.constructValue build, value for key,value of spec
     d

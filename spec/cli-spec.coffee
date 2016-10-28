@@ -17,9 +17,10 @@ describe "The Command Line Interface", ->
     worldDir = Path.join bobDir, "world"
     subDir = Path.join worldDir, "subdir"
 
-    mockProcess = (input)=>
+    mockProcess = (argv,input)=>
       stdin:Source [input]
       env:GEPRIS_HOME: homeDir
+      argv:["/path/to/node", "/path/to/main", argv...]
     sink = Sink()
     
     mkdir subDir
@@ -27,8 +28,29 @@ describe "The Command Line Interface", ->
   afterEach ->
     rmdir homeDir
 
-  it "parses stdin into an object stream suitable as input for a Bob Transform", ->
-    cli = Cli mockProcess """
+  it "expects input to be NDJSON by default", ->
+    cli = Cli mockProcess ["-y"], """
+    {"p1":["Projekt","ab_gesperrt",{"title":"SFB 42: Space Shuttle"}], "p2":["Projekt","rahmenprojekt"]}
+    {"p1":["Projekt"]}
+    """
+
+    cli.input.pipe sink 
+    expect(sink.promise).to.eventually.eql [
+      p1: [
+        "Projekt"
+        "ab_gesperrt"
+        title: "SFB 42: Space Shuttle"
+      ]
+      p2: [
+        "Projekt"
+        "rahmenprojekt"
+      ]
+    ,
+      p1: ["Projekt"]
+    ]
+
+  it "also can take a yaml stream as input", ->
+    cli = Cli mockProcess ["-f", "yaml"], """
     %YAML 1.2
     ---
     p1:
@@ -58,6 +80,19 @@ describe "The Command Line Interface", ->
       ]
     ,
       p1: ["Projekt"]
+    ]
+
+  it "also can process newline-delimmited s-expressions, but only in document mode", ->
+    cli = Cli mockProcess ["-f","sexp"], """
+    (Projekt ab_gesperrt (id p1 title "SFB 42: Space Shuttle"))
+    (Projekt rahmenprojekt (id p2))
+    (Projekt (id p3))
+    """
+    cli.input.pipe sink
+    expect(sink.promise).to.eventually.eql [
+      [ "Projekt", "ab_gesperrt", ["id", "p1", "title", "SFB 42: Space Shuttle"]]
+      [ "Projekt", "rahmenprojekt", ["id","p2"]]
+      [ "Projekt", ["id","p3"]]
     ]
 
   it "reads coffee/js files from a well-known directory and constructs a world definition", ->
