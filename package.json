@@ -4,8 +4,11 @@
   "version": "0.0.1",
   "description": "Create example data for test cases. Based on rosiejs/rosie",
   "main": "src/main.js",
+  "bin": {
+    "bob": "main.js"
+  },
   "scripts": {
-    "prepublish": "node mark-deps-bundled.js",
+    "prepublish": "node mark-deps-bundled.js && coffee -o lib/ -c src/*",
     "test": "mocha spec --recursive --require spec/helpers/chai.js --require coffee-script/register --compilers coffee:coffee-script/register",
     "test-watch": "mocha --recursive -b -w spec --require spec/helpers/chai.js --require coffee-script/register --compilers coffee:coffee-script/register,litcoffee:coffee-script/register ",
     "test-debug": "node-debug node_modules/mocha/bin/_mocha  --recursive spec --require spec/helpers/chai.js --require coffee-script/register --compilers coffee:coffee-script/register --no-timeouts --debug-brk",
@@ -28,6 +31,7 @@
   },
   "dependencies": {
     "bluebird": "^3.4.3",
+    "coffee-script": "^1.11.1",
     "deepmerge": "^0.2.10",
     "js-yaml": "^3.6.1",
     "minimist": "^1.2.0",
@@ -38,8 +42,15 @@
     "walkdir": "0.0.11"
   },
   "bundleDependencies": [
+    "bluebird",
+    "coffee-script",
     "deepmerge",
+    "js-yaml",
     "minimist",
-    "rosie"
+    "rosie",
+    "sexp",
+    "split",
+    "toposort",
+    "walkdir"
   ]
 }

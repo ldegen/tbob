@@ -1,5 +1,9 @@
 module.exports = (process)->
-
+  # need to register coffeescript compiler so world can be described in coffeescript
+  # even if bob itself is compiled to plain old javascript
+  #
+  # TODO: be a good node.js citizen and make this an optional requirement.
+  require "coffee-script/register"
   Transform = require("stream").Transform
   isArray = require("util").isArray
   yaml = require 'js-yaml'
