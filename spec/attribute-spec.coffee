@@ -1,5 +1,5 @@
 describe "An Attribute", ->
-  {Factory} = require "rosie"
+  Factory = require "../src/factory"
   Attribute = require "../src/attribute"
   {documentT,dictT,listT,scalarT,opaqueT, optionalT} = require "../src/type"
 
@@ -19,7 +19,7 @@ describe "An Attribute", ->
     expect(f.build()).to.eql foo:42
 
   it "can depend on other attributes of the same factory", ->
-    f.attr "other", 21
+    f.attr "other", [], -> 21
     a = Attribute "foo", deps:["other"], fill:(other)->2*other
     a.apply f
     expect(f.build()).to.eql foo:42, other:21
@@ -92,7 +92,7 @@ describe "An Attribute", ->
           barf: "doppel-#{torf}"
         deps: ["torf"]
       a.apply f
-      f.option "torf", "gedöhns"
+      f.option "torf", [], -> "gedöhns"
       expect(f.build()).to.eql
         foo:
           barf: "doppel-gedöhns"
@@ -106,7 +106,7 @@ describe "An Attribute", ->
           barf: "doppel-#{torf}"
         deps: ["torf"]
       a.apply f
-      f.option "torf", "gedöhns"
+      f.option "torf", [], -> "gedöhns"
       expect(f.build(
         foo: bang: "big"
       )).to.eql
@@ -118,12 +118,11 @@ describe "An Attribute", ->
       a = Attribute "foo",
         traits:[t0,t1]
         fill: (torf,foo)->
-          console.log "foo",foo
           barf: "#{foo?.bang}-#{torf}"
           bang: foo?.bang
         deps: ["torf","foo"]
       a.apply f
-      f.option "torf", "gedöhns"
+      f.option "torf", [], -> "gedöhns"
       expect(f.build(
         foo: bang: "big"
       )).to.eql

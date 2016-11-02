@@ -1,5 +1,5 @@
 isArray = require("util").isArray
-
+merge = require "./merge"
 list2obj = require "./list2obj"
 applySubst= (impl) -> (s, path0=[]) ->
   i = path0.indexOf this
@@ -15,10 +15,12 @@ applySubst= (impl) -> (s, path0=[]) ->
   ref.target=replacement for ref in refs
   replacement
     
-
-constructPlain = (build, spec)->
-  throw new Error "expected something of type #{JSON.stringify @describe()}, but got '#{spec}'" unless spec?
-  build spec
+augmentCx = require "./build-context"
+constructPlain = (build, spec, cx)->
+  augmented = augmentCx cx
+  unless spec?
+    throw new Error "expected something of type #{JSON.stringify @describe()}, but got '#{spec}'"
+  build spec, augmented
 
 expand = (impl) -> (t) ->
   if t.structure() == "recursive"
@@ -77,9 +79,9 @@ scalar = do ->
 
 
 document = (attrs,meta=null)->
-  constructValue:(build,spec0)->
+  constructValue:(build,spec0={}, cx)->
     spec = if isArray spec0 then list2obj spec0 else spec0
-    constructPlain build, spec
+    constructPlain.call this, build, spec, augmentCx cx
   structure: -> 'doc'
   attrs:attrs
   applySubst: applySubst (s, path)->
@@ -114,10 +116,10 @@ describeNested = ()->
   [@structure(), nested...]
 
 dict = (nestedType)->
-  constructValue: (build, spec0={})->
+  constructValue: (build, spec0={}, cx)->
     spec = if isArray spec0 then list2obj spec0 else spec0
     d = {}
-    d[key] = nestedType.constructValue build, value for key,value of spec
+    d[key] = nestedType.constructValue build, value, augmentCx(cx)._mkChild key for key,value of spec
     d
   describe: describeNested
   structure: ->'dict'
@@ -136,8 +138,8 @@ dict = (nestedType)->
     return false unless t.structure() is "dict"
     nestedType.includes t.nestedType
 list = (nestedType)->
-  constructValue: (build, spec=[])->
-    (nestedType.constructValue build, value for value in spec)
+  constructValue: (build, spec=[], cx)->
+    (nestedType.constructValue build, value, augmentCx(cx)._mkChild i for value,i in spec)
   structure: -> 'list'
   describe: describeNested
   nestedType:nestedType
@@ -154,8 +156,8 @@ list = (nestedType)->
     return false unless t.structure() is "list"
     nestedType.includes t.nestedType
 optional = (nestedType)->
-  constructValue: (build, spec)->
-    if spec? then nestedType.constructValue build, spec else null
+  constructValue: (build, spec, cx)->
+    if spec? then nestedType.constructValue build, spec, augmentCx cx else null
   nestedType: nestedType
   structure: -> 'optional'
   describe: describeNested
@@ -210,10 +212,10 @@ recursive = (depth)->
   applySubst: -> this
   target:null
   depth:->depth
-  constructValue:(build, spec)->
+  constructValue:(build, spec,cx)->
     if not @target?
       throw new Error "dangling recursive reference"
-    @target.constructValue build, spec
+    @target.constructValue build, spec, augmentCx cx
   contains:(v)->
     if not @target?
       throw new Error "dangling recursive reference"

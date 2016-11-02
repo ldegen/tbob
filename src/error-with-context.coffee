@@ -1,9 +1,11 @@
 module.exports = class ErrorWithContext extends Error
-  constructor: (nestedError, context={})->
-    super()
+  constructor: (nestedError, context0={})->
     @name="ErrorWithContext"
-    if typeof context is "string"
-      context = message:context
+    @originalStack = super.stack
+    if typeof context0 is "string"
+      context = message:context0
+    else
+      context = context0
     if context.message?
       nestedMessage = nestedError.message
         .split "\n"
@@ -14,6 +16,11 @@ module.exports = class ErrorWithContext extends Error
       @message=nestedError.message
     if context.context?
       @message="In '#{context.context}':\n#{@message}"
+
     @nestedError = nestedError
     @context= context
-    
+    fullNestedStack: ->
+      if @nestedError instanceof ErrorWithContext then @nestedError.fullStack() else @nestedError.stack
+    fullStack: ->
+      [@originalStack,fullNestedStack()...].join "\nNested Stack:\n"
+      

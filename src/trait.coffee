@@ -1,5 +1,6 @@
 {refT, documentT} = require "./type"
 Factory = require "./factory"
+BuildContext = require "./build-context"
 instances = []
 instance = (id0=-1)->
   try
@@ -9,10 +10,7 @@ instance = (id0=-1)->
     null
 #debug = (args...) -> debug args...
 debug = ->
-merge = (objs...)->
-  q={}
-  q[key]=value for key,value of o for o in objs
-  q
+merge = require "./merge"
 Trait=(opts={})->
   Attribute = require "./attribute"
   attrSpecs = opts.attributes ? {}
@@ -80,6 +78,7 @@ Trait=(opts={})->
 
   instances[id]=
     id:->id
+    docCount:0
     resolveLocal: resolveLocal
     label: label
     toString: ->opts.alias ? "Trait #{id}"
@@ -223,8 +222,11 @@ factoryForTraits = (sortedTraits)->
   key = sortedTraits.map (t)->t.id()
   factoryCache[key] ?= createFactory sortedTraits
 createFactory = (sortedTraits)->
-  factory = new Factory
+  factory = new Factory BuildContext
+
   trait.apply factory for trait in sortedTraits
+  factory.after -> t.docCount++ for t in sortedTraits
+
   factory
   
 module.exports = Trait

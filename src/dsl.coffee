@@ -234,6 +234,11 @@ module.exports = (body)->
   for globalName, trait of worldCx.store "factory"
     namedTraits[globalName] = trait
     
+  buildCx = (factoryName,traitNames, fillSpec, world)->
+    factoryName:factoryName
+    traitNames:traitNames
+    fillSpec:fillSpec
+    world: world
 
   #console.error "namedTraits", Object.keys namedTraits
   sequence: (factoryName, traitNames...)->
@@ -246,14 +251,18 @@ module.exports = (body)->
         trait
     Trait.sequence traits
   trait: (name)->lookupTrait "$world$/"+name
+  docCount: (factoryName, traitNames...)->
+    [...,last] = (@sequence factoryName, traitNames...).traits
+    last.docCount
+
   build: SigMatch (match)->
     match "s,s*,a?", (factoryName, traitNames, fillSpec=[])->
       @sequence factoryName, traitNames...
         .factory()
-        .build fillSpec
+        .build fillSpec, buildCx factoryName, traitNames, fillSpec, this
     match "s,s*,o?", (factoryName, traitNames, fillSpec={})->
       @sequence factoryName, traitNames...
         .factory()
-        .build fillSpec
+        .build fillSpec, buildCx factoryName, traitNames, fillSpec, this
     match ".*", ->
       throw new Error "don't know what to do"

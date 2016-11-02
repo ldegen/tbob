@@ -182,16 +182,46 @@ describe "The DSL", ->
         attributes: title: es:index:"analyzed"
       ]
 
-  it "builds a world with a build function", ->
-    world = dsl ->
-      @factory "Beteiligung", ->
-        @attr "perId"
-        @trait "verstorben", ->
-          @attr "aktiv", false
-      @factory "Projekt", ->
-        @attr "ehemalige",  @list @ref "Beteiligung", "verstorben"
-    doc1 = world.build "Beteiligung", "verstorben", perId:12
-    expect(doc1).to.eql
-      perId:12
-      aktiv:false
+  describe "the world", ->
+    it "serves as a simple facade for building documents", ->
+      world = dsl ->
+        @factory "Beteiligung", ->
+          @attr "perId"
+          @trait "verstorben", ->
+            @attr "aktiv", false
+        @factory "Projekt", ->
+          @attr "ehemalige",  @list @ref "Beteiligung", "verstorben"
+      doc1 = world.build "Beteiligung", "verstorben", perId:12
+      expect(doc1).to.eql
+        perId:12
+        aktiv:false
 
+    it "makes itself world and other interesting stuff available to fill strategies", ->
+      world = dsl ->
+        @factory "Foo", ->
+          @attr "bar", (@optional @opaque), [], ->this
+      cx = world.build("Foo").bar
+      expect(cx.fillSpec).to.eql []
+      expect(cx.world).to.eql world
+      expect(cx.factoryName).to.eql "Foo"
+      expect(cx.traitNames).to.eql []
+
+
+    it "keeps track of the number of instances created for each trait", ->
+      world = dsl ->
+        @factory "Base", ->
+          @trait "special", ->
+            @attr "foo"
+              .fill "42"
+        @factory "Other", ->
+          @extend "Base"
+          @attr "base", ->
+            @extend "Base","special"
+
+      world.build "Base","special"
+      world.build "Other"
+      expect(world.docCount("Base")).to.eql 3
+      expect(world.docCount("Base", "special")).to.eql 2
+      expect(world.docCount("Other")).to.eql 1
+
+            

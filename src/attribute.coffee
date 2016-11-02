@@ -1,4 +1,6 @@
 module.exports = (name, desc={})->
+  merge = require "./merge"
+  BuildContext = require "./build-context"
   ErrorWithContext = require "./error-with-context"
   Type = require "./type"
   Trait = require "./trait"
@@ -42,10 +44,13 @@ module.exports = (name, desc={})->
     else
       desc.type ? leafType()
 
-  apply: (factory, buildCx)->
-    build = (fillSpec)->
+  apply: (factory)->
+    build = (fillSpec, buildCx)->
       seq = sequence()
-      if seq? then seq.factory().build(fillSpec) else fillSpec
+      if seq? 
+        seq.factory().build(fillSpec, buildCx) 
+      else 
+        fillSpec
     # wrap fill strategy: to be on the safe side we add a dependency
     # to the attribute itself. By convention, rosie will pass overrides
     # given for the attribute itself in the corresponding argument.
@@ -59,9 +64,10 @@ module.exports = (name, desc={})->
       fillSpec = if override? and not (name in deps)
         override
       else
-        fill.call buildCx, attrs...
+        fill.call this, attrs...
       try
-        val = type().constructValue build, fillSpec
+        childCx =  BuildContext(this)._mkChild name
+        val = type().constructValue build, fillSpec, childCx
       catch e
         throw new ErrorWithContext e,
           attribute: name
