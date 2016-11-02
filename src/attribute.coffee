@@ -1,4 +1,5 @@
 module.exports = (name, desc={})->
+  ErrorWithContext = require "./error-with-context"
   Type = require "./type"
   Trait = require "./trait"
   plainSemantics =(factory,name,deps,fill)->
@@ -24,15 +25,15 @@ module.exports = (name, desc={})->
     traitsAndRefs = desc.traits ? []
     if traitsAndRefs.length > 0
       seed = traitsAndRefs.map (traitOrRef)->
-        if typeof traitOrRef is "object" 
-          traitOrRef 
+        if typeof traitOrRef is "object"
+          traitOrRef
         else
           trait = substitute traitOrRef
           throw new Error "unresolved trait ref: #{traitOrRef}" if not trait?
           trait
       Trait.sequence seed
 
-  leafType = -> 
+  leafType = ->
     seq = sequence()
     if seq? then seq.type() else Type.opaqueT()
   type =->
@@ -41,20 +42,34 @@ module.exports = (name, desc={})->
     else
       desc.type ? leafType()
 
-  apply: (factory)->
+  apply: (factory, buildCx)->
     build = (fillSpec)->
       seq = sequence()
       if seq? then seq.factory().build(fillSpec) else fillSpec
-
-    semantics factory, name, [name,deps...], (self,attrs...)->
-      fillSpec = if self? and not (name in deps) 
-        self  
-      else 
-        fill attrs...
-      val = type().constructValue build, fillSpec
+    # wrap fill strategy: to be on the safe side we add a dependency
+    # to the attribute itself. By convention, rosie will pass overrides
+    # given for the attribute itself in the corresponding argument.
+    # We use this to control how explicit overrides interact with the
+    # fill strategy defined for the attribute
+    semantics factory, name, [name,deps...], (override,attrs...)->
+      # if an override for this attribute was given, and if the fill
+      # strategy does *not* explicitly handle this, we
+      # ignore the fill strategy completely and give preference to
+      # the override
+      fillSpec = if override? and not (name in deps)
+        override
+      else
+        fill.call buildCx, attrs...
+      try
+        val = type().constructValue build, fillSpec
+      catch e
+        throw new ErrorWithContext e,
+          attribute: name
+          context: desc.context
+          message: "Cannot construct value for attribute '#{name}'"
       val
 
-        
+
   deps: ->deps
   meta: ->desc.meta ? {}
   type: type

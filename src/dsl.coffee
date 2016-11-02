@@ -57,6 +57,7 @@ module.exports = (body)->
         resolveGlobal:lookupTrait
         attributes: nestedCx.store "attr"
         parent: cx.path.join "/"
+        context: nestedCx.path.join "/"
 
       trait = Trait opts
       cx.store "inline", attrName, trait
@@ -189,6 +190,7 @@ module.exports = (body)->
       meta: traitCx.store "meta"
       deps: [factoryCx.path.join "/"]
       parent: factoryCx.path.join "/"
+      context: traitCx.path.join "/"
 
     trait = Trait opts
     factoryCx.store "trait", traitName, trait
@@ -222,6 +224,7 @@ module.exports = (body)->
       attributes: attributes
       alias: factoryName
       meta: factoryCx.store "meta"
+      context: factoryCx.path.join "/"
     worldCx.store "factory", (factoryCx.path.join "/"), Trait opts
 
 
@@ -231,6 +234,8 @@ module.exports = (body)->
   for globalName, trait of worldCx.store "factory"
     namedTraits[globalName] = trait
     
+
+  #console.error "namedTraits", Object.keys namedTraits
   sequence: (factoryName, traitNames...)->
     absoluteTraitNames = variant factoryName, traitNames...
     traits = absoluteTraitNames

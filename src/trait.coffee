@@ -19,7 +19,6 @@ Trait=(opts={})->
   attrs = {}
   alias = opts.alias ? null
   id=instances.length
-
   label= ->alias ? id
   parent = ()->
     symbol = opts.parent ? null
@@ -75,7 +74,9 @@ Trait=(opts={})->
     if value instanceof Attribute
       attrs[key] = value
     else
-      attrs[key] = Attribute key, merge value, substitute: resolveLocal
+      attrs[key] = Attribute key, merge value, 
+        substitute: resolveLocal
+        context: opts.context
 
   instances[id]=
     id:->id

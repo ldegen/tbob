@@ -17,7 +17,7 @@ applySubst= (impl) -> (s, path0=[]) ->
     
 
 constructPlain = (build, spec)->
-  throw Error "missing value! (TODO: helpful error messages)" unless spec?
+  throw new Error "expected something of type #{JSON.stringify @describe()}, but got '#{spec}'" unless spec?
   build spec
 
 expand = (impl) -> (t) ->
@@ -114,7 +114,7 @@ describeNested = ()->
   [@structure(), nested...]
 
 dict = (nestedType)->
-  constructValue: (build, spec0)->
+  constructValue: (build, spec0={})->
     spec = if isArray spec0 then list2obj spec0 else spec0
     d = {}
     d[key] = nestedType.constructValue build, value for key,value of spec
@@ -136,7 +136,7 @@ dict = (nestedType)->
     return false unless t.structure() is "dict"
     nestedType.includes t.nestedType
 list = (nestedType)->
-  constructValue: (build, spec)->
+  constructValue: (build, spec=[])->
     (nestedType.constructValue build, value for value in spec)
   structure: -> 'list'
   describe: describeNested
