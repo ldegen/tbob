@@ -84,6 +84,39 @@ document = (attrs,meta=null)->
     constructPlain.call this, build, spec, augmentCx cx
   structure: -> 'doc'
   attrs:attrs
+  _meta: meta
+  meta: (path...)->
+    node = this
+    parent = null
+    lastAttr = null
+    for attrName,i in path
+      parent = node
+      if parent.structure() isnt "doc"
+        throw new Error "Cannot traverse a non-document type.\n  Path: #{path[...i]}\n  Starting from: #{@describe()}"
+      node = node.attrs[attrName]
+      lastAttr = attrName
+      if not node?
+        throw new Error "Failed to resolve attribute #{attrName}\n  Path:#{path[..i]}\n  Starting from: #{@describe()}"
+      node = node.nestedType while node.nestedType?
+    merge {}, node._meta?.self, parent?._meta?.attributes?[lastAttr]
+
+  metaTree: ()->
+    tree=
+      _self: meta?.self
+    for attrName, attrType of attrs
+      attrType = attrType.nestedType while attrType.nestedType?
+      if attrType.structure() is "doc"
+        subTree = attrType.metaTree()
+        if subTree?._self? or subTree?._attrs?
+          tree._attrs ?= {} 
+          tree._attrs[attrName] = subTree
+    for attrName, attrMeta of (meta?.attributes ? {})
+      tree._attrs ?= {}
+      tree._attrs[attrName] ?= {}
+      tree._attrs[attrName]._self ?= {}
+      tree._attrs[attrName]._self = merge tree._attrs[attrName]._self, attrMeta
+    tree
+        
   applySubst: applySubst (s, path)->
     attrs_ = {}
     attrs_[key] = val.applySubst s, path for key,val of attrs

@@ -1,5 +1,6 @@
 describe "The Command Line Interface", ->
   Promise = require "bluebird"
+  TransformToBulk = require "../src/transform-to-bulk"
   mkdir = Promise.promisify require "mkdirp"
   rmdir = Promise.promisify require "rimraf"
   fs = require "fs"
@@ -11,7 +12,7 @@ describe "The Command Line Interface", ->
   bobDir = undefined
   worldDir = undefined
   subDir = undefined
-  beforeEach  -> 
+  beforeEach  ->
     homeDir = Path.join tmpFileName(@test)
     bobDir = Path.join homeDir, "bob"
     worldDir = Path.join bobDir, "world"
@@ -22,7 +23,7 @@ describe "The Command Line Interface", ->
       env:GEPRIS_HOME: homeDir
       argv:["/path/to/node", "/path/to/main", argv...]
     sink = Sink()
-    
+
     mkdir subDir
 
   afterEach ->
@@ -34,7 +35,7 @@ describe "The Command Line Interface", ->
     {"p1":["Projekt"]}
     """
 
-    cli.input.pipe sink 
+    cli.input.pipe sink
     expect(sink.promise).to.eventually.eql [
       p1: [
         "Projekt"
@@ -67,7 +68,7 @@ describe "The Command Line Interface", ->
       - Projekt
     """
 
-    cli.input.pipe sink 
+    cli.input.pipe sink
     expect(sink.promise).to.eventually.eql [
       p1: [
         "Projekt"
@@ -111,10 +112,54 @@ describe "The Command Line Interface", ->
     mock =
       factory: (name)->
         list.push name
-    
+
     cli = Cli mockProcess ""
 
     cli.world.call mock
 
     expect(list).to.eql ["foo","bar"]
-    
+  describe "when asked to produce ES Bulk output", ->
+    cli = undefined
+    beforeEach ->
+      cli = Cli mockProcess ['-b'], ""
+
+    it "configures the Bob Transform to include doc types", ->
+      expect(cli.transformOptions).to.eql
+        interleaveTypes:true
+
+    it "includes a TransformToBulk instance in the output pipeline", ->
+      expect(cli.output).is.an.instanceOf TransformToBulk
+      expect(cli.output.opts).to.eql
+        defaults:
+          id_attr:'id'
+          type_attr: 'type'
+        overrides:{}
+
+    it "can customize TransformToBulk defaults and overrides", ->
+      cli = Cli mockProcess [
+        '-b',
+        '-k', 'defaultIdAttr',
+        '-y', 'defaultTypeAttr',
+        '-x', 'defaultIndexAttr',
+        '-i', 'defaultIndex',
+        '-t', 'defaultType'
+        '-K', 'overrideIdAttr',
+        '-Y', 'overrideTypeAttr',
+        '-X', 'overrideIndexAttr'
+        '-T', 'overrideType',
+        '-I', 'overrideIndex'
+
+      ]
+      expect(cli.output.opts).to.eql
+        defaults:
+          id_attr:'defaultIdAttr'
+          type_attr: 'defaultTypeAttr'
+          index_attr: 'defaultIndexAttr'
+          index: 'defaultIndex'
+          type: 'defaultType'
+        overrides:
+          id_attr:'overrideIdAttr'
+          type_attr:'overrideTypeAttr'
+          index_attr: 'overrideIndexAttr'
+          index: 'overrideIndex'
+          type: 'overrideType'

@@ -1,23 +1,4 @@
 describe "Types", ->
-# A type is a class (as in set-theory) of values. Or rather: it is a predicate over values.
-# In our domain, we only consider predicates of one of the following forms:
-#
-#   a) The value is opaque, meaning: we don't know or care about its structure
-#
-#   b) The value is of some scalar type (string, boolean, numnber).
-#
-#   c) The value is a document with *at least* the following attributes: a1, a2, ..., an.
-#      Each attribute is a pair (name_i, type_i) with name_i != name_j for i!=j.
-#      The value for attribute a_i is consistent with type_i.
-#
-#   d) The value is a dictionary and all entries are of type t.
-#
-#   e) The value is a list and all elements are of type t.
-#
-#   f) The value is of a given type, or it is nil (i.e. absent).
-#   
-#   g) The value is nil (i.e.: absent).
-#
 
   {opaqueT, scalarT, documentT, dictT, listT, optionalT, nilT, bottomT, refT, construct } = require "../src/type"
   describe "a) The opaque type", ->
@@ -91,7 +72,7 @@ describe "Types", ->
     it "is included in the opaque type", ->
       expect(opaqueT().includes d).to.be.true
 
-    it """is included in another doc type if for any attribute a₀ in the other doc type 
+    it """is included in another doc type if for any attribute a₀ in the other doc type
           there is a matching attribute `a₁` in this doc type such that
           - the name of a₀ and a₁ are the same and
           - the type of a₀ contains that of a₁'
@@ -108,10 +89,52 @@ describe "Types", ->
       other = documentT
           boom: opaqueT()
       expect(other.includes d).to.be.false
+
+    it "can carry metadata for itself and its arguments", ->
+      other = documentT {
+        boom: opaqueT()
+        baz: documentT {oink:opaqueT()},
+          self: 
+            fump: 13
+            torf: 0
+          attributes: oink: stuff: "good"
+      },
+        self: foo:42
+        attributes:
+          boom: bar:21
+          baz: 
+            knarz:3
+            torf: 1
+      expect(other.meta()).to.eql foo:42
+      expect(other.meta "boom").to.eql bar:21
+      expect(other.meta "baz").to.eql
+        fump: 13
+        knarz: 3
+        torf: 1
+      expect(other.meta "baz","oink").to.eql stuff:"good"
+      expect(other.metaTree()).to.eql
+        _self:
+          foo:42
+        _attrs:
+          boom:
+            _self:
+              bar:21
+          baz:
+            _self:
+              fump:13
+              knarz:3
+              torf:1
+            _attrs:
+              oink:
+                _self:
+                  stuff: "good"
+
+
+
   describe "d) A dictionary type", ->
 
     d = dictT documentT foo: scalarT "number"
-    
+
     it "contains objects where all property values are of a known type", ->
 
       expect(d.contains
@@ -166,7 +189,7 @@ describe "Types", ->
 
     it "contains the empty array, but not null", ->
       expect(d.contains []).to.be.true
-    
+
     it "does not contain null", ->
       expect(d.contains null).to.be.false
 
@@ -249,7 +272,7 @@ describe "Types", ->
   describe "A Recursive Type", ->
     s = t = undefined
     beforeEach ->
-      t=documentT 
+      t=documentT
           head: opaqueT()
           tail: optionalT refT "some symbol"
       s=documentT
@@ -268,7 +291,7 @@ describe "Types", ->
         head: ['opaque']
         tail: ['optional', 'recursive', 2]
       ]
-      
+
     it "can decide membership for finite instances", ->
       t2 = t.applySubst ->t
       doc =
@@ -307,7 +330,7 @@ describe "Types", ->
       t2 = t.applySubst -> t
       expect(opaqueT().includes t2).to.be.true
       expect(finite.includes t2).to.be.true
-      expect(t2.includes finite).to.be.false #no, because beyond the first three 
+      expect(t2.includes finite).to.be.false #no, because beyond the first three
                                              #elms, the structure is not specified!
   describe "any type", ->
     it "can be constructed from a description", ->

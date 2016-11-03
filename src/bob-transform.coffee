@@ -1,4 +1,5 @@
-module.exports = (worldDefinition, dsl = require("./dsl"))->
+module.exports = (worldDefinition, opts={})->
+  dsl = opts.dsl ? require "./dsl"
   Transform = require("stream").Transform
   _worldInstance = undefined
   get_world = (forceNew=false)->
@@ -12,7 +13,13 @@ module.exports = (worldDefinition, dsl = require("./dsl"))->
     transform: (spec,_,done)->
       if require("util").isArray spec
         # document mode
-        @push get_world().build spec... 
+        world = get_world()
+        if opts.interleaveTypes
+          @push 
+            _type: world.type spec...
+            _data: world.build spec...
+        else
+          @push get_world().build spec... 
       else
         # scenario mode
         scenario =  {}
