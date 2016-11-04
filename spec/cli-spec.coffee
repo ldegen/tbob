@@ -6,17 +6,25 @@ describe "The Command Line Interface", ->
   fs = require "fs"
   Path = require "path"
   Cli = require "../src/cli"
+  crypto = require "crypto"
   sink = undefined
   mockProcess = undefined
+  tmpDir = undefined
   homeDir = undefined
   bobDir = undefined
   worldDir = undefined
   subDir = undefined
+  alternativeWorldDir = undefined
+  alternativeSubDir=undefined
   beforeEach  ->
-    homeDir = Path.join tmpFileName(@test)
+    tmpDir = tmpFileName()
+    homeDir = Path.join tmpDir, "home"
     bobDir = Path.join homeDir, "bob"
     worldDir = Path.join bobDir, "world"
     subDir = Path.join worldDir, "subdir"
+
+    alternativeWorldDir = Path.join tmpDir, "world"
+    alternativeSubDir = Path.join alternativeWorldDir, "subdir"
 
     mockProcess = (argv,input)=>
       stdin:Source [input]
@@ -25,9 +33,10 @@ describe "The Command Line Interface", ->
     sink = Sink()
 
     mkdir subDir
+      .then mkdir alternativeSubDir
 
   afterEach ->
-    rmdir homeDir
+    rmdir tmpDir
 
   it "expects input to be NDJSON by default", ->
     cli = Cli mockProcess ["-y"], """
@@ -118,6 +127,31 @@ describe "The Command Line Interface", ->
     cli.world.call mock
 
     expect(list).to.eql ["foo","bar"]
+
+  it "can be configured construct world definition from another directory", ->
+    fs.writeFileSync (Path.join alternativeWorldDir, "foo.js"), """
+    module.exports = function(){
+      this.factory("foo",function(){});
+    };
+    """
+
+    fs.writeFileSync (Path.join alternativeSubDir, "bar.coffee"), """
+    module.exports = ->
+      @factory "bar", ->
+    """
+
+    list = []
+    mock =
+      factory: (name)->
+        list.push name
+
+    cli = Cli mockProcess ["-w", alternativeWorldDir],""
+
+    cli.world.call mock
+
+    expect(list).to.eql ["foo","bar"]
+
+
   describe "when asked to produce ES Bulk output", ->
     cli = undefined
     beforeEach ->

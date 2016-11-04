@@ -51,12 +51,19 @@ global.Sink = function(opts0) {
   return output;
 };
 global.tmpFileName = function(test) {
-  var sha1 = require("crypto").createHash("sha1");
-  sha1.update(new Buffer([process.pid]));
-  sha1.update(test.fullTitle());
+  var buf;
+  var crypto = require("crypto");
+  if(test == null){
+    buf = crypto.randomBytes(20);
+  } else {
+    var sha1 = crypto.createHash("sha1");
+    sha1.update(new Buffer([process.pid]));
+    sha1.update(test.fullTitle());
+    buf = sha1.digest();
+  }
   return require("path").join(
     require("os").tmpdir(),
-    sha1.digest().toString("hex")
+    buf.toString("hex")
   );
 };
 

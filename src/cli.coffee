@@ -19,16 +19,18 @@ module.exports = (process)->
   sexp = require "sexp"
 
   argv = minimist process.argv.slice(2), boolean:['b','B']
-  GEPRIS_HOME = process.env.GEPRIS_HOME
+  worldDir = undefined
+  if argv.w?
+    worldDir = argv.w
+  else
+    GEPRIS_HOME = process.env.GEPRIS_HOME
+    if not GEPRIS_HOME?
+      throw new Error("Please set the environment variable GEPRIS_HOME or use -w to tell me were your factory definitions are located")
 
+    bobDir =  path.join GEPRIS_HOME, 'bob'
+    worldDir = path.join bobDir, 'world'
 
-  if not GEPRIS_HOME?
-    throw new Error("Please set the environment variable GEPRIS_HOME")
-
-  bobDir =  path.join GEPRIS_HOME, 'bob'
-  worldDir = path.join bobDir, 'world'
   stat = fs.statSync worldDir
-
   if not stat.isDirectory()
     throw new Error("Please create a directory for your factory definitions at #{worldDir}")
 
