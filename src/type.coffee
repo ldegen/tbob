@@ -1,4 +1,5 @@
 isArray = require("util").isArray
+put = require "./deep-put"
 merge = require "./merge"
 list2obj = require "./list2obj"
 applySubst= (impl) -> (s, path0=[]) ->
@@ -100,22 +101,26 @@ document = (attrs,meta=null)->
       node = node.nestedType while node.nestedType?
     merge {}, node._meta?.self, parent?._meta?.attributes?[lastAttr]
 
-  metaTree: ()->
-    tree=
-      _self: meta?.self
-    for attrName, attrType of attrs
-      attrType = attrType.nestedType while attrType.nestedType?
-      if attrType.structure() is "doc"
-        subTree = attrType.metaTree()
-        if subTree?._self? or subTree?._attrs?
-          tree._attrs ?= {} 
-          tree._attrs[attrName] = subTree
-    for attrName, attrMeta of (meta?.attributes ? {})
-      tree._attrs ?= {}
-      tree._attrs[attrName] ?= {}
-      tree._attrs[attrName]._self ?= {}
-      tree._attrs[attrName]._self = merge tree._attrs[attrName]._self, attrMeta
-    tree
+  metaTree: (combine=null)->
+
+    combine ?= (self, attrs, subtrees)->
+      tree = {}
+      put tree, '_self', self
+      for name,subtree of subtrees()
+        put tree, '_attrs', name, subtree
+      for name, meta of attrs
+        put tree, '_attrs', name, '_self', meta
+      tree
+
+    subtrees = ->
+      result={}
+      for attrName, attrType of attrs
+        attrType = attrType.nestedType while attrType.nestedType?
+        if attrType.structure() is "doc"
+          result[attrName] = attrType.metaTree(combine)
+      result
+    combine.call this, meta?.self, meta?.attributes, subtrees
+    
         
   applySubst: applySubst (s, path)->
     attrs_ = {}

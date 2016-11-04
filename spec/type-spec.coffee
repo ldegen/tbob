@@ -1,5 +1,5 @@
 describe "Types", ->
-
+  merge = require "../src/merge"
   {opaqueT, scalarT, documentT, dictT, listT, optionalT, nilT, bottomT, refT, construct } = require "../src/type"
   describe "a) The opaque type", ->
 
@@ -129,6 +129,31 @@ describe "Types", ->
                 _self:
                   stuff: "good"
 
+    it "builds meta-documents via bottom-up traversal with custom reduction", ->
+      other = documentT {
+        boom: opaqueT()
+        baz: documentT {oink:opaqueT()},
+          self: 
+            fump: 13
+            torf: 0
+          attributes: oink: stuff: 59
+      },
+        self: foo:42
+        attributes:
+          boom: bar:21
+          baz: 
+            knarz:3
+            torf: 1
+      combine = (self, attrs, trees)-> merge.deep self, attrs, trees()
+      expect(other.metaTree combine).to.eql
+        foo:42
+        boom:
+          bar:21
+        baz:
+          knarz:3
+          fump:13
+          torf:0
+          oink:stuff:59
 
 
   describe "d) A dictionary type", ->
