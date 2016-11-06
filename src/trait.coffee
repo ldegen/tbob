@@ -157,6 +157,7 @@ createTypeForSeq = (sortedTraits)->
         meta.attributes ?= {}
         meta.attributes[attrName] ?= {}
         meta.attributes[attrName][key]=value
+    #console.log "applying meta for trait", trait.label(), trait.meta()
     for key,value of trait.meta()
       meta ?= {}
       meta.self ?= {}

@@ -48,7 +48,8 @@ module.exports = (body)->
       nestedCx = mk_cx "$"+attrName+"$", cx,
         attr: attrDirective
         extend: extendDirective
-      
+        meta: metaDirective
+
       body.call nestedCx.facade
 
       opts=
@@ -58,6 +59,7 @@ module.exports = (body)->
         attributes: nestedCx.store "attr"
         parent: cx.path.join "/"
         context: nestedCx.path.join "/"
+        meta: nestedCx.store "meta"
 
       trait = Trait opts
       cx.store "inline", attrName, trait

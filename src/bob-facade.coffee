@@ -1,7 +1,7 @@
 module.exports = ({trait, sequence})->
   
   SigMatch = require "./signature-matcher"
-
+  esMapper = require "./es-mapper"
   buildCx = (factoryName,traitNames, fillSpec, world)->
     factoryName:factoryName
     traitNames:traitNames
@@ -23,6 +23,9 @@ module.exports = ({trait, sequence})->
     match "s,s*,o?", (names..., fillSpec={})->doType.call this, names..., fillSpec
     match ".*", ->
       throw new Error "don't know what to do"
+  esMapping: (args...)->
+    @type args...
+      .metaTree esMapper
   build: SigMatch (match)->
     doBuild= (factoryName, traitNames, fillSpec)->
       sequence factoryName, traitNames...
