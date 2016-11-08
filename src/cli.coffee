@@ -66,8 +66,8 @@ module.exports = (process, { BobTransform, TransformToBulk, TransformToMapping, 
     opts = opts0 ? objectMode: true
     input = new Readable opts
     input.push chunk for chunk in chunks
-    input.push(null);
-    input;
+    input.push(null)
+    input
 
   empty = ->
     r = new Readable objectMode:true
@@ -136,8 +136,6 @@ module.exports = (process, { BobTransform, TransformToBulk, TransformToMapping, 
     index: argv.overrideIndex
     type: argv.overrideType
   input: ->
-
-
     source = (
       if argv._.length == 0
         process.stdin
@@ -189,7 +187,7 @@ module.exports = (process, { BobTransform, TransformToBulk, TransformToMapping, 
   pipeline: ->
     [
       @input()...
-      @filter()...
+      @filter()
       @output()...
     ]
 
