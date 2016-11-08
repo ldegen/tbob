@@ -63,7 +63,7 @@ describe "The Command Line Interface", ->
 
   afterEach ->
     rmdir tmpDir
-
+  
   it "expects input to be NDJSON by default", ->
     cli = Cli ["-y"], """
     {"p1":["Projekt","ab_gesperrt",{"title":"SFB 42: Space Shuttle"}], "p2":["Projekt","rahmenprojekt"]}
@@ -251,3 +251,13 @@ describe "The Command Line Interface", ->
       [tf, ..., sink] = cli.output()
       expect(tf).to.be.an.instanceOf TransformToMapping
       expect(sink).to.be.an.instanceOf PutMappingSink
+  describe "when given non-option arguments", ->
+    beforeEach ->
+      cli = Cli ["-f","sexp","(Projekt supergrün (id 42))", "(Auto sportlich (id 21))"], "Yeah that's right, just ignore me..."
+    
+      pipeline cli.input(), sink
+    it "feeds them into the input pipeline, ignoring stdin", ->
+      expect(sink.promise).to.eventually.eql [
+        ["Projekt", "supergrün",["id",42]]
+        ["Auto", "sportlich", ["id",21]]
+      ]

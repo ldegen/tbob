@@ -61,6 +61,13 @@ module.exports = (process, { BobTransform, TransformToBulk, TransformToMapping, 
 
   worldDescription = -> def.call this for def in worldDefs
 
+  Source = (chunks,opts0) ->
+    opts = opts0 ? objectMode: true
+    input = new Readable opts
+    input.push chunk for chunk in chunks
+    input.push(null);
+    input;
+
   empty = ->
     r = new Readable objectMode:true
     r.push null
@@ -76,7 +83,7 @@ module.exports = (process, { BobTransform, TransformToBulk, TransformToMapping, 
         done()
 
   parseJson = ->
-    new Transform 
+    new Transform
       objectMode:true
       transform: (chunk, encoding, done)->
         @push JSON.parse chunk if chunk.trim().length>0
@@ -102,8 +109,8 @@ module.exports = (process, { BobTransform, TransformToBulk, TransformToMapping, 
   output = undefined
 
   bobOptions = {
-    mode: switch 
-      when argv.bulk or argv.uploadBulk then "duplex" 
+    mode: switch
+      when argv.bulk or argv.uploadBulk then "duplex"
       when argv.mapping or argv.uploadMapping then "duplex"
       else "document"
   }
@@ -127,22 +134,31 @@ module.exports = (process, { BobTransform, TransformToBulk, TransformToMapping, 
     index_attr: argv.overrideIndexAttr
     index: argv.overrideIndex
     type: argv.overrideType
-  input: -> 
+  input: ->
+
+
+    source = (
+      if argv._.length == 0
+        process.stdin
+      else
+        Source argv._.map (chunk)->chunk+"\n"
+    )
+
 
     switch argv.format
       when "yaml" then [
-        process.stdin
+        source
         splitLines()
         splitDocs()
         parseYaml()
       ]
       when "sexp" then [
-        process.stdin
+        source
         splitLines()
         parseSexp()
       ]
       else [
-        process.stdin
+        source
         splitLines()
         parseJson()
       ]
@@ -157,15 +173,15 @@ module.exports = (process, { BobTransform, TransformToBulk, TransformToMapping, 
       chain.push new TransformToMapping bulkOptions
     if argv.uploadBulk
       client = new Client host:host, keepAlive=false
-      sink = new BulkIndexSink client, index:index 
+      sink = new BulkIndexSink client, index:index
       sink.promise.finally -> client.close()
       chain.push sink
     else if argv.uploadMapping
       client = new Client host:host, keepAlive=false
-      sink = new PutMappingSink client, index:index, reset:argv.clearIndex 
+      sink = new PutMappingSink client, index:index, reset:argv.clearIndex
       sink.promise.finally -> client.close()
       chain.push sink
-    else 
+    else
       chain.push stringify(), process.stdout
     chain
   filter: -> BobTransform worldDescription, bobOptions
