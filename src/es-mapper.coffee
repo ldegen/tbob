@@ -18,8 +18,8 @@ module.exports = (self, attrs, subtrees)->
         
           
   for name,subtree of subtrees()
-    put tree, 'properties', name, subtree
+    put tree, 'properties', name, subtree if Object.keys(subtree).length >0
   for name, meta of attrs when meta.es?.mapping
     put tree, 'properties', name, (merge (defaults name), meta.es.mapping)
-
+  
   merge tree, self?.es?.mapping

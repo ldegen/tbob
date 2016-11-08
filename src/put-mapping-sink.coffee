@@ -2,7 +2,8 @@
 {Client} = require "elasticsearch"
 Promise = require "bluebird"
 module.exports = class PutMappingSink extends Writable
-  constructor: (client, {index, reset}={})->
+  constructor: (client, opts={})->
+    @opts = {index, reset}=opts
     prepared = false
     super 
       objectMode:true

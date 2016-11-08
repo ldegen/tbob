@@ -251,6 +251,15 @@ describe "The Command Line Interface", ->
       [tf, ..., sink] = cli.output()
       expect(tf).to.be.an.instanceOf TransformToMapping
       expect(sink).to.be.an.instanceOf PutMappingSink
+      expect(sink.opts).to.eql index:"project", reset: false
+    it "can tell the Sink to reset the index", ->
+      cli = Cli ["-M","-C"]
+      [tf, ..., sink] = cli.output()
+      expect(tf).to.be.an.instanceOf TransformToMapping
+      expect(sink).to.be.an.instanceOf PutMappingSink
+      expect(sink.opts).to.eql index:"project", reset:true
+
+
   describe "when given non-option arguments", ->
     beforeEach ->
       cli = Cli ["-f","sexp","(Projekt supergrün (id 42))", "(Auto sportlich (id 21))"], "Yeah that's right, just ignore me..."
