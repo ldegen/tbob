@@ -97,6 +97,17 @@ module.exports = (process, { BobTransform, TransformToBulk, TransformToMapping, 
         @push yaml.safeLoad chunk if chunk?.trim().length > 0
         done()
 
+  parseYaml2 = ->
+    new Transform
+      objectMode:true
+      transform: (chunk,encoding, done)->
+        list = yaml.safeLoad chunk if chunk?.trim().length > 0
+        for obj in list
+          for key, value of obj
+            names = key.split /[,\s]+/
+            @push [names..., value]
+        done()
+
   stringify = ->
     new Transform
       objectMode:true
@@ -150,6 +161,12 @@ module.exports = (process, { BobTransform, TransformToBulk, TransformToMapping, 
         splitLines()
         splitDocs()
         parseYaml()
+      ]
+      when "yaml2" then [
+        source
+        splitLines()
+        splitDocs()
+        parseYaml2()
       ]
       when "sexp" then [
         source

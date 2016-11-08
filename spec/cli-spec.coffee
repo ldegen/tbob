@@ -63,7 +63,7 @@ describe "The Command Line Interface", ->
 
   afterEach ->
     rmdir tmpDir
-  
+
   it "expects input to be NDJSON by default", ->
     cli = Cli ["-y"], """
     {"p1":["Projekt","ab_gesperrt",{"title":"SFB 42: Space Shuttle"}], "p2":["Projekt","rahmenprojekt"]}
@@ -115,6 +115,32 @@ describe "The Command Line Interface", ->
       ]
     ,
       p1: ["Projekt"]
+    ]
+  it "supports an alternative yaml format for document mode", ->
+    cli = Cli ["-f","yaml2"], """
+    %YAML 1.2
+    ---
+    - Projekt:
+        title : "SFB 42 : Space Shuttle"
+        id    : 99
+
+    - Person, lebendig:
+        name : Onkel Lukas
+        id   : 2
+
+    ...
+    %YAML 1.2
+    ---
+
+    - Projekt:
+        title: geht dich gar nichts an
+        id: 9
+    """
+    pipeline cli.input(), sink
+    expect(sink.promise).to.eventually.eql [
+      ["Projekt", title: "SFB 42 : Space Shuttle", id: 99]
+      ["Person", "lebendig", name: "Onkel Lukas", id: 2]
+      ["Projekt", title: "geht dich gar nichts an", id: 9]
     ]
 
   it "also can process newline-delimmited s-expressions, but only in document mode", ->
@@ -263,7 +289,7 @@ describe "The Command Line Interface", ->
   describe "when given non-option arguments", ->
     beforeEach ->
       cli = Cli ["-f","sexp","(Projekt supergrün (id 42))", "(Auto sportlich (id 21))"], "Yeah that's right, just ignore me..."
-    
+
       pipeline cli.input(), sink
     it "feeds them into the input pipeline, ignoring stdin", ->
       expect(sink.promise).to.eventually.eql [
