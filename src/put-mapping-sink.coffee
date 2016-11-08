@@ -9,22 +9,25 @@ module.exports = class PutMappingSink extends Writable
       objectMode:true
       write: (mappings, enc, done)->
         pass = (f)->(val)->Promise.resolve(f val).then -> val
-        prepare = if reset and not prepared
-          client.indices.getSettings index:index
-            .then pass -> client.indices.delete index:index
-            .then pass -> client.indices.create index:index
-            .then (settings) -> client.indices.putSettings body:settings, index:index
-        else Promise.resolve()
-        prepare
+        prepare = (
+          if reset and not prepared
+            client.indices.delete index:index
+              .then -> client.indices.create index:index
+
+          else 
+            Promise.resolve()
+        )
+        Promise.resolve(prepare)
+          .then -> console.error "prepare done"
           .then -> Promise.all (
             for type, mapping of mappings
-              parameters =
-                index: index
-                type: type
-                body: mapping
-              prepare.then -> client.indices.putMapping parameters
+              client.indices.putMapping index:index, type:type, body:mapping
           )
-          .then -> done()
+          .then -> 
+            console.error "put mappings", mappings 
+            done()
+          #.error (e)->console.error e.stack
+
         prepared = true
 
     # this is very useful for testing

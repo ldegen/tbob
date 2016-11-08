@@ -41,10 +41,9 @@ describe "The Put-Mapping-Sink", ->
 
     expect(sink.promise).to.be.fulfilled.then ->
       expect(client.calls).to.eql [
-        ['getSettings', index: "my_index"]
         ['deleteIndex', index: "my_index"]
         ['createIndex', index: "my_index"]
-        ['putSettings', index: "my_index", body: {importantOption:42}]
+        #['putSettings', index: "my_index", body: {importantOption:42}]
         ['putMapping',  index: "my_index", type: "foo", body:dynamic:false]
         ['putMapping', index: "my_index", type: "bar", body:onkel:'tante']
       ]
