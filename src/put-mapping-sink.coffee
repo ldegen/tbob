@@ -18,15 +18,12 @@ module.exports = class PutMappingSink extends Writable
             Promise.resolve()
         )
         Promise.resolve(prepare)
-          .then -> console.error "prepare done"
           .then -> Promise.all (
             for type, mapping of mappings
               client.indices.putMapping index:index, type:type, body:mapping
           )
           .then -> 
-            console.error "put mappings", mappings 
             done()
-          #.error (e)->console.error e.stack
 
         prepared = true
 

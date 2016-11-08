@@ -14,4 +14,5 @@ module.exports = class BulkIndexSink extends WritableBulk
     # this is very useful for testing
     @promise = new Promise (resolve, reject) =>
       @on "close", resolve
-      @on "error", reject
+      @on "error", (e)->
+        reject e
