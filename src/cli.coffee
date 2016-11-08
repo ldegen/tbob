@@ -33,6 +33,7 @@ module.exports = (process, { BobTransform, TransformToBulk, TransformToMapping, 
   readme =  yaml.load fs.readFileSync path.join __dirname, '..', 'README.yaml'
   argv = toCamelCase minimist process.argv.slice(2), automist readme
   if argv.help
+    process.stdout.write automist.help readme
     process.exit -1
   worldDir = undefined
   if argv.world?

@@ -47,6 +47,8 @@
     "bluebird",
     "coffee-script",
     "deepmerge",
+    "elasticsearch",
+    "elasticsearch-streams",
     "js-yaml",
     "minimist",
     "rosie",
