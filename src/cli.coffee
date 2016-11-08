@@ -1,27 +1,42 @@
-module.exports = (process)->
+module.exports = (process, { BobTransform, TransformToBulk, TransformToMapping, BulkIndexSink, PutMappingSink}={})->
   # need to register coffeescript compiler so world can be described in coffeescript
   # even if bob itself is compiled to plain old javascript
   #
   # TODO: be a good node.js citizen and make this an optional requirement.
   require "coffee-script/register"
-  Transform = require("stream").Transform
-  WritableBulk = require('elasticsearch-streams').WritableBulk
-  EsClient = require('elasticsearch').Client
-  TransformToBulk = require "./transform-to-bulk"
+  {Readable, Transform} = require "stream"
+  {Client} = require "elasticsearch"
+  BobTransform ?= require "./bob-transform"
+  TransformToBulk ?= require "./transform-to-bulk"
+  TransformToMapping ?= require "./transform-to-mapping"
+  BulkIndexSink ?= require "./bulk-index-sink"
+  PutMappingSink ?= require "./put-mapping-sink"
   isArray = require("util").isArray
   yaml = require 'js-yaml'
   fs = require 'fs'
   path = require 'path'
   minimist = require "minimist"
+  automist = require "automist"
+
   splitLines = require "split"
   splitDocs = require "./lines-to-yaml-docs"
   walkdir = require "walkdir"
   sexp = require "sexp"
+  toCamelCase = (x)->
+    if typeof x is "string"
+      x.replace /\W+(\w)/g, (_,c)->c.toUpperCase()
+    else
+      o={}
+      o[toCamelCase key]=value for key,value of x
+      o
 
-  argv = minimist process.argv.slice(2), boolean:['b','B']
+  readme =  yaml.load fs.readFileSync path.join __dirname, '..', 'README.yaml'
+  argv = toCamelCase minimist process.argv.slice(2), automist readme
+  if argv.help
+    process.exit -1
   worldDir = undefined
-  if argv.w?
-    worldDir = argv.w
+  if argv.world?
+    worldDir = argv.world
   else
     GEPRIS_HOME = process.env.GEPRIS_HOME
     if not GEPRIS_HOME?
@@ -44,7 +59,12 @@ module.exports = (process)->
     #throw new Error("No factory definitions found in #{worldDir}")
     console.warn "No factory definitions found in #{worldDir}"
 
+  worldDescription = -> def.call this for def in worldDefs
 
+  empty = ->
+    r = new Readable objectMode:true
+    r.push null
+    r
 
   parseSexp = ->
     new Transform
@@ -78,74 +98,81 @@ module.exports = (process)->
         else
           console.log "chunk undefined?"
         done()
-  createEsSink = (host, index) ->
-    client = new EsClient
-      host: host
-      keepAlive: false
-
-    bulkExec = (bulkCmds, callback) ->
-      client.bulk {
-        index: index
-        body: bulkCmds
-      }, callback
-
-    ws = new WritableBulk bulkExec
-    ws.on 'close', -> client.close()
-    ws
 
   output = undefined
-  if argv.B
-    host = argv.h ? argv.H ? 'http://localhost:9200'
-    index = argv.i ? argv.I ? 'project'
-    output = createEsSink host, index
-  else
-    output = stringify()
-    output.pipe process.stdout if process.stdout?
 
-  bobOptions = {}
+  bobOptions = {
+    mode: switch 
+      when argv.bulk or argv.uploadBulk then "duplex" 
+      when argv.mapping or argv.uploadMapping then "duplex"
+      else "document"
+  }
 
-  if argv.b or argv.B
-    bobOptions.interleaveTypes=true
-    bulkOptions=
-      defaults:
-        id_attr:'id'
-        type_attr:'type'
-      overrides:{}
-    customize = (target,hash)->
-      target[name] = value for name,value of hash when value?
-    customize bulkOptions.defaults,
-      id_attr: argv.k
-      type_attr: argv.y
-      index_attr: argv.x
-      index: argv.i
-      type: argv.t
-    customize bulkOptions.overrides,
-      id_attr: argv.K
-      type_attr: argv.Y
-      index_attr: argv.X
-      index: argv.I
-      type: argv.T
+  bulkOptions=
+    defaults:
+      id_attr:'id'
+      type_attr:'type'
+    overrides:{}
+  customize = (target,hash)->
+    target[name] = value for name,value of hash when value?
+  customize bulkOptions.defaults,
+    id_attr: argv.defaultIdAttr
+    type_attr: argv.defaultTypeAttr
+    index_attr: argv.defaultIndexAttr
+    index: argv.defaultIndex
+    type: argv.defaultType
+  customize bulkOptions.overrides,
+    id_attr: argv.overrideIdAttr
+    type_attr: argv.overrideTypeAttr
+    index_attr: argv.overrideIndexAttr
+    index: argv.overrideIndex
+    type: argv.overrideType
+  input: -> 
 
-    tf = new TransformToBulk bulkOptions
-    tf.pipe output
-    output = tf
-
-  input: switch argv.f
-      when "yaml"
+    switch argv.format
+      when "yaml" then [
         process.stdin
-        .pipe splitLines()
-        .pipe splitDocs()
-        .pipe parseYaml()
-      when "sexp"
+        splitLines()
+        splitDocs()
+        parseYaml()
+      ]
+      when "sexp" then [
         process.stdin
-        .pipe splitLines()
-        .pipe parseSexp()
-      else
+        splitLines()
+        parseSexp()
+      ]
+      else [
         process.stdin
-        .pipe splitLines()
-        .pipe parseJson()
-  output: output
-  world: ->
-    def.call(this) for def in worldDefs
-  transformOptions: bobOptions
+        splitLines()
+        parseJson()
+      ]
+  output: ->
+    chain = []
+    host = argv.esUrl ? 'http://localhost:9200'
+    index = argv.defaultIndex ? argv.overrideIndex ? 'project'
+
+    if argv.bulk or argv.uploadBulk
+      chain.push new TransformToBulk bulkOptions
+    else if argv.mapping or argv.uploadMapping
+      chain.push new TransformToMapping bulkOptions
+    if argv.uploadBulk
+      client = new Client host:host, keepAlive=false
+      sink = new BulkIndexSink client, index:index 
+      sink.promise.finally -> client.close()
+      chain.push sink
+    else if argv.uploadMapping
+      client = new Client host:host, keepAlive=false
+      sink = new PutMappingSink client, index:index, reset:argv.clearIndex 
+      sink.promise.finally -> client.close()
+      chain.push sink
+    else 
+      chain.push stringify(), process.stdout
+    chain
+  filter: -> BobTransform worldDescription, bobOptions
+  pipeline: ->
+    [
+      @input()...
+      @filter()...
+      @output()...
+    ]
 

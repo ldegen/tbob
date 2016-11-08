@@ -1,33 +1,37 @@
 module.exports = (worldDefinition, opts={})->
-  dsl = opts.dsl ? require "./dsl"
+  dsl =  require "./dsl"
+  facade = require "./bob-facade"
+  createWorld = opts.world ? (world)-> facade dsl world
+  mode = opts.mode ? "document"
   Transform = require("stream").Transform
   _worldInstance = undefined
   get_world = (forceNew=false)->
     if forceNew
-      dsl worldDefinition
+      createWorld worldDefinition
     else
-      _worldInstance ?= dsl worldDefinition
+      _worldInstance ?= createWorld worldDefinition
 
   tf = new Transform
     objectMode:true
     transform: (spec,_,done)->
-      if require("util").isArray spec
-        # document mode
-        world = get_world()
-        if opts.interleaveTypes
+      switch mode
+        when "duplex"
+          world = get_world()
           @push 
             _type: world.type spec...
             _data: world.build spec...
-        else
+        when "document"
           @push get_world().build spec... 
-      else
-        # scenario mode
-        scenario =  {}
-        world = get_world true
-        for alias, args of spec
-          scenario[alias] = world.build args...
-        
-        @push scenario
+        when "type"
+          @push get_world().type spec... 
+        when "scenario"
+          scenario =  {}
+          world = get_world true
+          for alias, args of spec
+            scenario[alias] = world.build args...
+          @push scenario
+        else
+          throw new Error "no such mode: #{mode}"
       done()
 
     flush: (done)->done()

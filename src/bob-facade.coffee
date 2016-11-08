@@ -1,5 +1,4 @@
 module.exports = ({trait, sequence})->
-  
   SigMatch = require "./signature-matcher"
   esMapper = require "./es-mapper"
   buildCx = (factoryName,traitNames, fillSpec, world)->
@@ -19,8 +18,8 @@ module.exports = ({trait, sequence})->
     doType= (factoryName, traitNames, fillSpec)->
       sequence factoryName, traitNames...
         .type()
-    match "s,s*,a?", (names..., fillSpec=[])->doType.call this, names..., fillSpec
-    match "s,s*,o?", (names..., fillSpec={})->doType.call this, names..., fillSpec
+    match "s,s*,a?", (factoryName, traitNames, fillSpec=[])->doType.call this, factoryName, traitNames, fillSpec
+    match "s,s*,o?", (factoryName, traitNames, fillSpec={})->doType.call this, factoryName, traitNames, fillSpec
     match ".*", ->
       throw new Error "don't know what to do"
   esMapping: (args...)->
@@ -31,7 +30,7 @@ module.exports = ({trait, sequence})->
       sequence factoryName, traitNames...
         .factory()
         .build fillSpec, buildCx factoryName, traitNames, fillSpec, this
-    match "s,s*,a?", (names..., fillSpec=[])->doBuild.call this, names..., fillSpec
-    match "s,s*,o?", (names..., fillSpec={})->doBuild.call this, names..., fillSpec
+    match "s,s*,a?", (factoryName, traitNames, fillSpec=[])->doBuild.call this, factoryName, traitNames, fillSpec
+    match "s,s*,o?", (factoryName, traitNames, fillSpec={})->doBuild.call this, factoryName, traitNames, fillSpec
     match ".*", ->
       throw new Error "don't know what to do"

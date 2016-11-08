@@ -1,0 +1,162 @@
+---
+synopsis: |
+  bob [<option>…] [<spec>…]
+
+usage: |
+  Bob is a tool for creating test data. It reads a world definition from
+  world directory. This world definition defines the different types of
+  Documents and how to fill them with data.
+
+  Bob then takes on or more document specifications and turns them into actual
+  documents. The document specification only includes properties relevant to 
+  your particular test-case. Bob will flesh out the rest using dummy data.
+
+  A document specification must include a factory name. The factory name may
+  be followed by one or more trait names and an optional fill specification.
+  Specifications may be read from stdin or given as arguments.
+
+  See the `-f` optoin for supported formats.
+
+  Bob may also be used to output metadata about the specified documents.
+  In particular, Bob can create mappings for Elastic Search, if 
+  the required annotations are present in the world description.
+
+options:
+  - short: h
+    long: help
+    description: Print a help message
+  
+  - short: w
+    long: world
+    argument: path
+    decription: |
+      Use an alternative world directory. If ommitted, Bob will search for factory 
+      definitions in `$GEPRIS_HOME/bob/world`. 
+  
+  - short: f
+    long: format
+    argument: "ndjson|sexp|yaml"
+    description: |
+      Specify the format in which document specifications are given.
+      The default is `ndjson`. Bob expects specs as json arrays delimited by newline characters.
+      It should have the following form:
+      ```
+      ["Factory", "traitA", "traitB", ..., {"key":"value", ...}]
+      ```
+      Note that the other formats are still world in progress; the format has not yet
+      stabelized.
+
+  - short: b
+    long: bulk
+    description: |
+      Generate output in ES Bulk Index format.
+
+  - short: B
+    long: upload-bulk
+    description: |
+      Upload generated documents to ElasticSearch.
+
+  - short: m
+    long: mapping
+    description: |
+      Do not output actual documents but ElasticSearch mappings.
+
+  - short: M
+    long: upload-mapping
+    description: |
+      Upload ElasticSearch mappings.
+
+  - short: C
+    long: clear-index
+    description: |
+      Used in conjunction with `-M`. It will drop and recreate the ElasticSearch index.
+
+  - short: u
+    long: es-url
+    description: |
+      Used in conjunction with `-B`, `-M` or `-C` to specify the API endpoint of the
+      elasticsearch node to upload to.
+
+  - short: k
+    long: default-id-attr
+    argument: attribute
+    description: |
+      Used in conjunction with `-b` or `-B` to specify which attribute should be used for the
+      document id when no attribute is specified in the document type's metadata.
+
+      Defaults to `id`.
+
+  - short: y
+    long: default-type-attr
+    argument: attribute
+    description: |
+      Used in conjunction with `-b` or `-B` to specify which attribute should be used for the
+      document type when neither an attribute nor a type is specified in the
+      documnent type's metadata.
+
+      Defaults to `type`.
+
+  - short: x
+    long: default-index-attr
+    argument: attribute
+    description: |
+      Used in conjunction with `-b` or `-B` to specify which attribute should be used
+      to infer the index the document should be stored to. This option is only used for 
+      documents where neither an attribute nor a concrete index is specified in the
+      documnent type's metadata.
+
+      Defaults to `index`.
+
+  - short: i
+    long: default-index
+    argument: index-name
+    description: |
+      Used in conjunction with `-b` or `-B` to specify a concrete index to which documents
+      for which no index or index attribute was specified in the meta-data should be stored.
+
+      Defaults to `app-test` for historical reasons.
+
+  - short: t
+    long: default-type
+    argument: type-name
+    description: |
+      Used in conjunction with `-b` or `-B` to specify a mapping type to use for those documents
+      for which no type or type attribute was specified in the meta-data.
+
+      Defaults to `project` for historical reasons.
+
+  - short: K
+    long: override-id-attr
+    argument: attribute-name
+    description: |
+      This option works like `-k` expcept that the given attribute name will be used for all
+      documents, regardless of their respective type or meta-data.
+
+  - short: Y
+    long: override-type-attr
+    argument: attribute-name
+    description: |
+      This option works like `-y` expcept that the given attribute name will be used for all
+      documents, regardless of their respective type or meta-data.
+
+  - short: X
+    long: override-index-attr
+    argument: attribute-name
+    description: |
+      This option works like `-x` expcept that the given attribute name will be used for all
+      documents, regardless of their respective type or meta-data.
+  
+  - short: I
+    long: override-index
+    argument: index-name
+    description: |
+      This option works like `-t` except that the given index will be used for all
+      documents, regardless of their respective type or meta-data.
+
+  - short: T
+    long: override-type
+    argument: type-name
+    description: |
+      This option works like `-t` except that the given mapping type will be used for all
+      documents, regardless of their respective type or meta-data.
+
