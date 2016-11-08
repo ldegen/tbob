@@ -55,6 +55,6 @@ describe "The Bob Facade", ->
     expect(facade.esMapping "Foo").to.eql
       dynamic:false
       properties:
-        id: stored:false, index:"not_analyzed", type:"special-type"
+        id: store:false, index:"not_analyzed", type:"special-type"
         bar: properties:
-          baz: stored:false, index:"analyzed", analyzer:"german", type: "string"
+          baz: store:false, index:"analyzed", analyzer:"german", type: "string"

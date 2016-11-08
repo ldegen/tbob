@@ -7,7 +7,7 @@ module.exports = (self, attrs, subtrees)->
     type = type.nestedType while type.nestedType?
     defs = 
       index:"not_analyzed"
-      stored:false
+      store:false
     if type.structure() is "scalar"
       kind = type.describe()[1]
       defs.type = switch kind

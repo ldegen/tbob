@@ -43,7 +43,7 @@ describe "The ES-Mapper", ->
         properties:
           title:
             type:"string"        # guessed from attribute type
-            stored:false         # default
+            store:false         # default
             index:"not_analyzed" # default
           persons:
             properties:
