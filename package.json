@@ -30,6 +30,7 @@
     "url": "https://dfg.tarent.de/anonscm/git/geprisapp/geprisapp-service.git"
   },
   "dependencies": {
+    "automist": "^0.1.0",
     "bluebird": "^3.4.3",
     "coffee-script": "^1.11.1",
     "deepmerge": "^0.2.10",
@@ -44,6 +45,7 @@
     "walkdir": "0.0.11"
   },
   "bundleDependencies": [
+    "automist",
     "bluebird",
     "coffee-script",
     "deepmerge",
