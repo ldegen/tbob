@@ -11,7 +11,7 @@ module.exports = class PutMappingSink extends Writable
         pass = (f)->(val)->Promise.resolve(f val).then -> val
         prepare = (
           if reset and not prepared
-            client.indices.delete index:index
+            client.indices.delete index:index, ignore: 404
               .then -> client.indices.create index:index
 
           else 
