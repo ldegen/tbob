@@ -30,7 +30,7 @@
     "url": "https://dfg.tarent.de/anonscm/git/geprisapp/geprisapp-service.git"
   },
   "dependencies": {
-    "automist": "^0.1.0",
+    "automist": "^0.2.0",
     "bluebird": "^3.4.3",
     "coffee-script": "^1.11.1",
     "deepmerge": "^0.2.10",

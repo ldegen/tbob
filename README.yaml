@@ -1,14 +1,18 @@
 ---
-synopsis: |
-  bob [<option>…] [<spec>…]
+name: bob - the test-data builder
+section: 1
+arguments:
+  - name: SPEC
+    optional: true
+    moreThanOnce: true
 
-usage: |
+description: |
   Bob is a tool for creating test data. It reads a world definition from
   world directory. This world definition defines the different types of
   Documents and how to fill them with data.
 
   Bob then takes on or more document specifications and turns them into actual
-  documents. The document specification only includes properties relevant to 
+  documents. The document specification only includes properties relevant to
   your particular test-case. Bob will flesh out the rest using dummy data.
 
   A document specification must include a factory name. The factory name may
@@ -18,21 +22,25 @@ usage: |
   See the `-f` optoin for supported formats.
 
   Bob may also be used to output metadata about the specified documents.
-  In particular, Bob can create mappings for Elastic Search, if 
+  In particular, Bob can create mappings for Elastic Search, if
   the required annotations are present in the world description.
 
 options:
   - short: h
     long: help
     description: Print a help message
-  
+
+  - short: m
+    long: manpage
+    description: Generate a manual page
+
   - short: w
     long: world
-    argument: path
-    decription: |
-      Use an alternative world directory. If ommitted, Bob will search for factory 
-      definitions in `$GEPRIS_HOME/bob/world`. 
-  
+    argument: PATH
+    description: |
+      Use an alternative world directory. If ommitted, Bob will search for factory
+      definitions in `$GEPRIS_HOME/bob/world`.
+
   - short: f
     long: format
     argument: "ndjson|sexp|yaml"
@@ -40,9 +48,9 @@ options:
       Specify the format in which document specifications are given.
       The default is `ndjson`. Bob expects specs as json arrays delimited by newline characters.
       It should have the following form:
-      ```
-      ["Factory", "traitA", "traitB", ..., {"key":"value", ...}]
-      ```
+
+        ["Factory", "traitA", "traitB", ..., {"key":"value", ...}]
+
       Note that the other formats are still world in progress; the format has not yet
       stabelized.
 
@@ -73,13 +81,14 @@ options:
 
   - short: u
     long: es-url
+    argument: URL
     description: |
       Used in conjunction with `-B`, `-M` or `-C` to specify the API endpoint of the
       elasticsearch node to upload to.
 
   - short: k
     long: default-id-attr
-    argument: attribute
+    argument: ATTRIBUTE
     description: |
       Used in conjunction with `-b` or `-B` to specify which attribute should be used for the
       document id when no attribute is specified in the document type's metadata.
@@ -88,7 +97,7 @@ options:
 
   - short: y
     long: default-type-attr
-    argument: attribute
+    argument: ATTRIBUTE
     description: |
       Used in conjunction with `-b` or `-B` to specify which attribute should be used for the
       document type when neither an attribute nor a type is specified in the
@@ -98,10 +107,10 @@ options:
 
   - short: x
     long: default-index-attr
-    argument: attribute
+    argument: ATTRIBUTE
     description: |
       Used in conjunction with `-b` or `-B` to specify which attribute should be used
-      to infer the index the document should be stored to. This option is only used for 
+      to infer the index the document should be stored to. This option is only used for
       documents where neither an attribute nor a concrete index is specified in the
       documnent type's metadata.
 
@@ -109,7 +118,7 @@ options:
 
   - short: i
     long: default-index
-    argument: index-name
+    argument: INDEX_NAME
     description: |
       Used in conjunction with `-b` or `-B` to specify a concrete index to which documents
       for which no index or index attribute was specified in the meta-data should be stored.
@@ -118,7 +127,7 @@ options:
 
   - short: t
     long: default-type
-    argument: type-name
+    argument: TYPE_NAME
     description: |
       Used in conjunction with `-b` or `-B` to specify a mapping type to use for those documents
       for which no type or type attribute was specified in the meta-data.
@@ -127,35 +136,35 @@ options:
 
   - short: K
     long: override-id-attr
-    argument: attribute-name
+    argument: ATTRIBUTE
     description: |
       This option works like `-k` expcept that the given attribute name will be used for all
       documents, regardless of their respective type or meta-data.
 
   - short: Y
     long: override-type-attr
-    argument: attribute-name
+    argument: ATTRIBUTE
     description: |
       This option works like `-y` expcept that the given attribute name will be used for all
       documents, regardless of their respective type or meta-data.
 
   - short: X
     long: override-index-attr
-    argument: attribute-name
+    argument: ATTRIBUTE
     description: |
       This option works like `-x` expcept that the given attribute name will be used for all
       documents, regardless of their respective type or meta-data.
-  
+
   - short: I
     long: override-index
-    argument: index-name
+    argument: INDEX_NAME
     description: |
       This option works like `-t` except that the given index will be used for all
       documents, regardless of their respective type or meta-data.
 
   - short: T
     long: override-type
-    argument: type-name
+    argument: TYPE_NAME
     description: |
       This option works like `-t` except that the given mapping type will be used for all
       documents, regardless of their respective type or meta-data.
