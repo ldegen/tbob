@@ -149,6 +149,9 @@ module.exports = (body)->
     meta: (metadata)->
       opts.meta=metadata
       this
+    semantics: (s)->
+      opts.apply = s
+      this
     type: SigMatch (match)->
       match "o", (typeExpr)->
         opts.type= typeExpr.type
