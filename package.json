@@ -9,7 +9,7 @@
   },
   "man": "./man/bob.1",
   "scripts": {
-    "prepublish": "node mark-deps-bundled.js && coffee -o lib/ -c src/* && npm run manpage",
+    "prepublish": "coffee -o lib/ -c src/*",
     "test": "mocha spec --recursive --require spec/helpers/chai.js --require coffee-script/register --compilers coffee:coffee-script/register",
     "test-watch": "mocha --recursive -b -w spec --require spec/helpers/chai.js --require coffee-script/register --compilers coffee:coffee-script/register,litcoffee:coffee-script/register ",
     "test-debug": "node-debug node_modules/mocha/bin/_mocha  --recursive spec --require spec/helpers/chai.js --require coffee-script/register --compilers coffee:coffee-script/register --no-timeouts --debug-brk",
@@ -45,20 +45,5 @@
     "split": "^1.0.0",
     "toposort": "^1.0.0",
     "walkdir": "0.0.11"
-  },
-  "bundleDependencies": [
-    "automist",
-    "bluebird",
-    "coffee-script",
-    "deepmerge",
-    "elasticsearch",
-    "elasticsearch-streams",
-    "js-yaml",
-    "minimist",
-    "rosie",
-    "sexp",
-    "split",
-    "toposort",
-    "walkdir"
-  ]
+  }
 }
