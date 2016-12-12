@@ -1,8 +1,8 @@
 {
   "private": true,
   "name": "bob",
-  "version": "0.0.1",
-  "description": "Create example data for test cases. Based on rosiejs/rosie",
+  "version": "0.1.0",
+  "description": "Create example data for test cases. Inspired by rosiejs/rosie",
   "main": "src/main.js",
   "bin": {
     "bob": "main.js"
@@ -40,7 +40,6 @@
     "elasticsearch-streams": "0.0.9",
     "js-yaml": "^3.6.1",
     "minimist": "^1.2.0",
-    "rosie": "^1.6.0",
     "sexp": "^0.1.5",
     "split": "^1.0.0",
     "toposort": "^1.0.0",
