@@ -1,5 +1,5 @@
 {
-  "private": true,
+  "private": false,
   "name": "tbob",
   "version": "0.1.0",
   "description": "Create example data for test cases. Inspired by rosiejs/rosie",
@@ -17,7 +17,7 @@
     "manpage": "mkdir -p ./man && coffee src/main.coffee --manpage > man/tbob.1"
   },
   "author": "Lukas Degener <l.degener@tarent.de>",
-  "license": "Not decided yet",
+  "license": "MirOS",
   "devDependencies": {
     "chai": "^3.5.0",
     "chai-as-promised": "^5.3.0",
@@ -29,8 +29,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://dfg.tarent.de/anonscm/git/geprisapp/geprisapp-service.git"
+    "url": "https://github.com/ldegen/tbob"
   },
+  "bugs": {
+    "url": "https://github.com/ldegen/tbob/issues"
+  },
+  "homepage": "https://github.com/ldegen/tbob#readme",
   "dependencies": {
     "automist": "^0.2.0",
     "bluebird": "^3.4.3",
