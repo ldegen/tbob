@@ -1,4 +1,3 @@
-{Factory}= require "rosie"
 toposort = require "toposort"
 list2obj = require "./list2obj"
 identity = (x)->x

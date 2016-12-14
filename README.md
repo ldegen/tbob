@@ -1,101 +1,129 @@
-tbob
-===
+# tbob
 
-*tbob* ist ein *Builder*, ein Werkzeug, das -- gemäß einer bekannten *Bauanleitung* --
-Datensätze erzeugt, die bestimmten vorgegebenen Anforderungen genügen (z.B.
-ein Projektnachweis zu einem bestimmten Verfahren). Alle nicht spezifizierten
-Eigenschaften werden mit "plausiblen" Defaults befüllt. Die so erstellten
-Datensätze eigenen sich zur Verwendung in manuellen oder automatisierten
-Testfällen.
+tbob is a test data builder inspired in particular by
+[Rosie](https://github.com/rosiejs/rosie).
 
+However, at some point tbob evolved into a different direction.
+We needed it to do more than "just" create test data.
+In our particular workflow, factory definitions serve as reference model of our
+data structures. From this model we want to create other stuff, like mappings
+for Elasticsearch. We want to be able to express type constraints, and a way to attach arbitrary
+metadata to any document type or attribute. Rosie's factory inheritance is fine, but we wanted
+something more flexible. All this comes at the cost of added complexity.
 
-Motivation
-----------
+If generating test data is your primary concern, you are almost certainly better of with
+Rosie.
 
-Das Verhalten unseres Systems wird auf zwei Ebenen durch Tests beschrieben:
+__Disclaimer:__
+This is work in progress. Before releasing v1.0.0 we need to
 
-1. Einerseits beschreiben wir das Verhalten einzelner *Komponenten* unabhängig
-   von der Domäne.
+- Document the DSL and the CLI
 
-2. Andererseits beschreiben wir das Verhalten einer bestimmten *Konfiguration*
-   dieser Komponenten *für unsere Domäne*.
+- finalize and document the scenario formats
 
-Insbesondere im zweiten Fall muss davon ausgegangen werden, dass wir in
-verschiedensten Kontexten mit ähnlichen Testdaten arbeiten werden.
+- Give some examples of `@meta`-Annotations, and how those can be used
+  to create ElasticSearch Mappings and other cool stuff.
 
-Einfaches Beispiel:
+## Usage
 
-- Eine REST-API stellt Daten in einem bestimmten Format zur Verfügung.
+First, you need to tell tbob what kind of documents it should create.
+You do this by defining *factories*, using tbob's own DSL:
 
-- Ein Client verarbeitet diese Daten und repräsentiert sie in einer bestimmten
-  Art und Weise.
+``` coffee
 
-Beide Tests referenzieren die 'Art' von Daten, die wir natürlich trotzdem nur
-einmal beschreiben wollen. Und optimaler weise so, dass die Beschreibung
-automatisch überprüft wird. 
-
-
-
-Welten, Factories, Traits
--------------------------
-
-Factories funtkionieren im wesentlichen genau wie die von Rosie.  Tatsächlich
-verwenden wir Rosie-Factories zur Implementierung unserer Factories, exponieren
-aber nur einen Teil der Rosie-API in unserer DSL.
-
-Wir verwenden zudem nicht die globale Registry von Rosie, sondern eine eigene
-Registry die spezifisch für die jeweilige Instanz von tbob ist.
-
-Eine neue Instanz von tbob wird immer mit einer *Welt* instanziiert. Die
-Welt wird beschrieben durch eine anonyme Funktion, die mit einem
-`worldContext`-Objekt als `this` ausgeführt wird.
-
-Dieser Kontext stellt die API zum definieren von Factories bereit. Das ist im
-Wesentlichen die Methode `factory`. Diese wiederum erwartet eine weitere
-Callback-Funktion, die diese factory beschreibt.  Dieser Callback wird mit
-einem `factoryContext` als `this` aufgerufen.  Der `factoryContext` ist ein
-dünner Wrapper um eine `Factory`-Instanz von Rosie und bietet die übliche API
-(`attr`, `sequence`, `option`, `extend`). Darüber hinaus gibt es die Direktive
-`trait` zum definieren eines Traits. Diese erwartet wiederum einen Callback
-der wiederum mit einem `traitContext` als `this` ausgeführt wird. usw.
-
-Beispiel:
----------
-Beispiel
-Eine einfache Welt könnte folgendermaßen aussehen:
-
-``` coffeescript
 module.exports = ->
-  
-  @factory "Project", ->
-    @sequence "id"
-    @attr "title", [id], (id)->"Titel von Projekt #{id}"
-    @attr "abstract", "Lorem Ipsum einszweidrei"
-    @trait "no_abstract", ->
-      @attr "abstract", null
-    
+  @factory "TodoList", ->
+    @attr "owner"
+      .type ->
+        @attr "name"
+          .type @string
+          .fill "(owner name)"
+        @attr "email"
+          .type @optional @string
+
+      
+    @attr "items"
+      .type @list @ref "TodoItem"
+      .fill [{},{},{done:true}]
+
+  @factory "TodoItem", ->
+    @attr "id"
+      .type @number
+      .fill [], ->@world.docCount "TodoItem"
+    @attr "title"
+      .type @string
+      .fill ["id"], (id)->"Title for item #{id}"
+    @attr "done"
+      .type @boolean
+      .fill false
+
 ```
 
-Szenarien, Varianten, Dokumente
--------------------------------
+Next, you can run tbob like this
+
+``` bash
+tbob -w examples/ '["TodoList"]'
+```
+
+it will create a json document populated with defaults:
+``` json
+{
+   "items" : [
+      {
+         "done" : false,
+         "title" : "Title for item 0",
+         "id" : 0
+      },
+      {
+         "title" : "Title for item 1",
+         "id" : 1,
+         "done" : false
+      },
+      {
+         "done" : true,
+         "title" : "Title for item 2",
+         "id" : 2
+      }
+   ],
+   "owner" : {
+      "email" : null,
+      "name" : "(owner name)"
+   }
+}
+```
+
+Let's assume for your test case you need a todolist
+with some particular values in it. You only specify the values
+that are different from their respective defaults:
 
 
-Ideen zur Umsetzung
--------------------
+``` bash
+tbob -w examples/ '["TodoList", {"items":[{"title": "Find better examples"},{},{"done":true}]}]'
+```
 
-- Die eigentliche Arbeit erledigen wir mit
-  [rosie](https://github.com/rosiejs/rosie), oder irgendwas ähnlichem.
-
-- Wir nehmen die Factories aus dem geprisapp-service als Ausgangspunkt.
-
-- Dieser Kern wird um die Möglichkeit erweitert, Bauanleitungen "dynamisch" zu laden.
-
-- Ausserdem benötigen wir mittelfristig die Möglichkeit, über Bauanleitungen zu reflektieren.
-
-- Um den Kern wickeln wir Schnittstellen, die uns ermöglichen, tbob nicht nur via API,
-  sondern auch auf der Kommandozeile oder aus einer Web-Anwendung heraus zu nutzen.
-
-
-
-
-
+The result would be:
+``` json
+{
+   "owner" : {
+      "email" : null,
+      "name" : "(owner name)"
+   },
+   "items" : [
+      {
+         "title" : "Find better examples",
+         "id" : 0,
+         "done" : false
+      },
+      {
+         "done" : false,
+         "id" : 1,
+         "title" : "Title for item 1"
+      },
+      {
+         "title" : "Title for item 2",
+         "id" : 2,
+         "done" : true
+      }
+   ]
+}
+```
