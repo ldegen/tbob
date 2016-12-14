@@ -9,7 +9,7 @@
   },
   "man": "./man/bob.1",
   "scripts": {
-    "prepublish": "coffee -o lib/ -c src/*",
+    "prepublish": "coffee -o lib/ -c src/* && npm run manpage",
     "test": "mocha spec --recursive --require spec/helpers/chai.js --require coffee-script/register --compilers coffee:coffee-script/register",
     "test-watch": "mocha --recursive -b -w spec --require spec/helpers/chai.js --require coffee-script/register --compilers coffee:coffee-script/register,litcoffee:coffee-script/register ",
     "test-debug": "node-debug node_modules/mocha/bin/_mocha  --recursive spec --require spec/helpers/chai.js --require coffee-script/register --compilers coffee:coffee-script/register --no-timeouts --debug-brk",
