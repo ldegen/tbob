@@ -1,5 +1,5 @@
-describe "The Bob Facade", ->
-  Facade = require "../src/bob-facade"
+describe "The TBob Facade", ->
+  Facade = require "../src/tbob-facade"
   dsl = require "../src/dsl"
 
   it "provides a convenient API for building documents", ->

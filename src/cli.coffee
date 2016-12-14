@@ -1,12 +1,12 @@
-module.exports = (process, { BobTransform, TransformToBulk, TransformToMapping, BulkIndexSink, PutMappingSink}={})->
+module.exports = (process, { TBobTransform, TransformToBulk, TransformToMapping, BulkIndexSink, PutMappingSink}={})->
   # need to register coffeescript compiler so world can be described in coffeescript
-  # even if bob itself is compiled to plain old javascript
+  # even if tbob itself is compiled to plain old javascript
   #
   # TODO: be a good node.js citizen and make this an optional requirement.
   require "coffee-script/register"
   {Readable, Transform} = require "stream"
   {Client} = require "elasticsearch"
-  BobTransform ?= require "./bob-transform"
+  TBobTransform ?= require "./tbob-transform"
   TransformToBulk ?= require "./transform-to-bulk"
   TransformToMapping ?= require "./transform-to-mapping"
   BulkIndexSink ?= require "./bulk-index-sink"
@@ -43,12 +43,12 @@ module.exports = (process, { BobTransform, TransformToBulk, TransformToMapping, 
   if argv.world?
     worldDir = argv.world
   else
-    GEPRIS_HOME = process.env.GEPRIS_HOME
-    if not GEPRIS_HOME?
-      throw new Error("Please set the environment variable GEPRIS_HOME or use -w to tell me were your factory definitions are located")
+    TBOB_HOME = process.env.TBOB_HOME
+    if not TBOB_HOME?
+      throw new Error("Please set the environment variable TBOB_HOME or use -w to tell me were your factory definitions are located")
 
-    bobDir =  path.join GEPRIS_HOME, 'bob'
-    worldDir = path.join bobDir, 'world'
+    tbobDir =  path.join TBOB_HOME, 'tbob'
+    worldDir = path.join tbobDir, 'world'
 
   stat = fs.statSync worldDir
   if not stat.isDirectory()
@@ -124,7 +124,7 @@ module.exports = (process, { BobTransform, TransformToBulk, TransformToMapping, 
 
   output = undefined
 
-  bobOptions = {
+  tbobOptions = {
     mode: switch
       when argv.bulk or argv.uploadBulk then "duplex"
       when argv.mapping or argv.uploadMapping then "duplex"
@@ -204,7 +204,7 @@ module.exports = (process, { BobTransform, TransformToBulk, TransformToMapping, 
     else
       chain.push stringify(), process.stdout
     chain
-  filter: -> BobTransform worldDescription, bobOptions
+  filter: -> TBobTransform worldDescription, tbobOptions
   pipeline: ->
     [
       @input()...

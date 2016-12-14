@@ -1,7 +1,7 @@
-Bob
+tbob
 ===
 
-*Bob* ist ein *Builder*, ein Werkzeug, das -- gemäß einer bekannten *Bauanleitung* --
+*tbob* ist ein *Builder*, ein Werkzeug, das -- gemäß einer bekannten *Bauanleitung* --
 Datensätze erzeugt, die bestimmten vorgegebenen Anforderungen genügen (z.B.
 ein Projektnachweis zu einem bestimmten Verfahren). Alle nicht spezifizierten
 Eigenschaften werden mit "plausiblen" Defaults befüllt. Die so erstellten
@@ -44,9 +44,9 @@ verwenden wir Rosie-Factories zur Implementierung unserer Factories, exponieren
 aber nur einen Teil der Rosie-API in unserer DSL.
 
 Wir verwenden zudem nicht die globale Registry von Rosie, sondern eine eigene
-Registry die spezifisch für die jeweilige Instanz von Bob ist.
+Registry die spezifisch für die jeweilige Instanz von tbob ist.
 
-Eine neue Instanz von Bob wird immer mit einer *Welt* instanziiert. Die
+Eine neue Instanz von tbob wird immer mit einer *Welt* instanziiert. Die
 Welt wird beschrieben durch eine anonyme Funktion, die mit einem
 `worldContext`-Objekt als `this` ausgeführt wird.
 
@@ -92,7 +92,7 @@ Ideen zur Umsetzung
 
 - Ausserdem benötigen wir mittelfristig die Möglichkeit, über Bauanleitungen zu reflektieren.
 
-- Um den Kern wickeln wir Schnittstellen, die uns ermöglichen, Bob nicht nur via API,
+- Um den Kern wickeln wir Schnittstellen, die uns ermöglichen, tbob nicht nur via API,
   sondern auch auf der Kommandozeile oder aus einer Web-Anwendung heraus zu nutzen.
 
 

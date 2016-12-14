@@ -1,11 +1,11 @@
-describe "The Bob Transform", ->
-  BobTransform = require "../src/bob-transform"
+describe "The TBob Transform", ->
+  TBobTransform = require "../src/tbob-transform"
   sink = undefined
   source = undefined
-  bob = undefined
+  tbob = undefined
   scenarioNo = undefined
   world = ->
-  MockBob = ()->
+  MockTBob = ()->
     scenarioNo++
     build: (args...)->["Scenario #{scenarioNo}", args...]
     type: (args...)->["Scenario #{scenarioNo}", "type", args...]
@@ -22,7 +22,7 @@ describe "The Bob Transform", ->
 
   describe "in scenario mode", ->
     beforeEach ->
-      bob = BobTransform world, world:MockBob, mode:'scenario'
+      tbob = TBobTransform world, world:MockTBob, mode:'scenario'
       source = Source [
         p1: [
           "Projekt"
@@ -38,7 +38,7 @@ describe "The Bob Transform", ->
       ]
     it "treats each chunk of input as a description of a separate scenario, containing an arbitrary number of (named) documents",->
       source
-        .pipe bob
+        .pipe tbob
         .pipe sink
       expect(sink.promise).to.eventually.eql [
         p1: ["Scenario 1", "Projekt", "ab_gesperrt", title:"SFB 42: Space Shuttle"]
@@ -49,10 +49,10 @@ describe "The Bob Transform", ->
 
   describe "in document mode", ->
     beforeEach ->
-      bob = BobTransform world, world:MockBob, mode:'document'
+      tbob = TBobTransform world, world:MockTBob, mode:'document'
     it "treats input chunks as document specs all belonging to the same scenario", ->
       source
-        .pipe bob
+        .pipe tbob
         .pipe sink
       expect(sink.promise).to.eventually.eql [
         ["Scenario 1", "Projekt", "ab_gesperrt", title:"SFB 42: Space Shuttle"]
@@ -61,10 +61,10 @@ describe "The Bob Transform", ->
       ]
   describe "in type mode", ->
     beforeEach ->
-      bob = BobTransform world, world:MockBob, mode:'type'
+      tbob = TBobTransform world, world:MockTBob, mode:'type'
     it "outputs document types instead of documents", ->
       source
-        .pipe bob
+        .pipe tbob
         .pipe sink
       expect(sink.promise).to.eventually.eql [
         ["Scenario 1", "type", "Projekt", "ab_gesperrt", title:"SFB 42: Space Shuttle"]
@@ -74,10 +74,10 @@ describe "The Bob Transform", ->
 
   describe "in duplex mode", ->
     beforeEach ->
-      bob = BobTransform world, world:MockBob, mode:'duplex'
+      tbob = TBobTransform world, world:MockTBob, mode:'duplex'
     it "produces objects containing both, the type and the objec", ->
       source
-        .pipe bob
+        .pipe tbob
         .pipe sink
       expect(sink.promise).to.eventually.eql [
         _type: ["Scenario 1", "type", "Projekt", "ab_gesperrt", title:"SFB 42: Space Shuttle"]

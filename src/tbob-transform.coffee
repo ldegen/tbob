@@ -1,6 +1,6 @@
 module.exports = (worldDefinition, opts={})->
   dsl =  require "./dsl"
-  facade = require "./bob-facade"
+  facade = require "./tbob-facade"
   createWorld = opts.world ? (world)-> facade dsl world
   mode = opts.mode ? "document"
   Transform = require("stream").Transform

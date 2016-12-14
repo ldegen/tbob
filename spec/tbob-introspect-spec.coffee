@@ -1,5 +1,5 @@
-describe "The Bob Introspection API", ->
-  Introspect = require "../src/bob-introspect"
+describe "The tbob Introspection API", ->
+  Introspect = require "../src/tbob-introspect"
   dsl = require "../src/dsl"
   introspect = undefined
   beforeEach ->

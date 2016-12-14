@@ -1,5 +1,5 @@
 Cli = require "./cli"
-Transform = require "./bob-transform"
+Transform = require "./tbob-transform"
 Cli process
   .pipeline()
   .reduce (a,b)->a.pipe b

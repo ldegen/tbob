@@ -1,5 +1,5 @@
 ---
-name: bob - the test-data builder
+name: tbob - the test-data builder
 section: 1
 arguments:
   - name: SPEC
@@ -7,13 +7,13 @@ arguments:
     moreThanOnce: true
 
 description: |
-  Bob is a tool for creating test data. It reads a world definition from
+  tbob is a tool for creating test data. It reads a world definition from
   world directory. This world definition defines the different types of
   Documents and how to fill them with data.
 
-  Bob then takes on or more document specifications and turns them into actual
+  tBob then takes on or more document specifications and turns them into actual
   documents. The document specification only includes properties relevant to
-  your particular test-case. Bob will flesh out the rest using dummy data.
+  your particular test-case. tBob will flesh out the rest using dummy data.
 
   A document specification must include a factory name. The factory name may
   be followed by one or more trait names and an optional fill specification.
@@ -21,8 +21,8 @@ description: |
 
   See the `-f` optoin for supported formats.
 
-  Bob may also be used to output metadata about the specified documents.
-  In particular, Bob can create mappings for Elastic Search, if
+  tBob may also be used to output metadata about the specified documents.
+  In particular, tBob can create mappings for Elastic Search, if
   the required annotations are present in the world description.
 
 options:
@@ -38,15 +38,15 @@ options:
     long: world
     argument: PATH
     description: |
-      Use an alternative world directory. If ommitted, Bob will search for factory
-      definitions in `$GEPRIS_HOME/bob/world`.
+      Use an alternative world directory. If ommitted, tBob will search for factory
+      definitions in `$TBOB_HOME/tbob/world`.
 
   - short: f
     long: format
     argument: "ndjson|sexp|yaml"
     description: |
       Specify the format in which document specifications are given.
-      The default is `ndjson`. Bob expects specs as json arrays delimited by newline characters.
+      The default is `ndjson`. tBob expects specs as json arrays delimited by newline characters.
       It should have the following form:
 
         ["Factory", "traitA", "traitB", ..., {"key":"value", ...}]

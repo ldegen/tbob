@@ -1,9 +1,9 @@
 describe "The ES-Mapper", ->
-  facade = require "../src/bob-facade"
+  facade = require "../src/tbob-facade"
   dsl = require "../src/dsl"
   mapper = require "../src/es-mapper"
   it "creates an ES Mapping from document meta data", ->
-    bob = facade dsl ->
+    tbob = facade dsl ->
       @factory "Person", ->
         @meta
           es: type: "person"
@@ -35,7 +35,7 @@ describe "The ES-Mapper", ->
           @meta es:mapping:properties:
             name:type:"string", index:"not_analyzed"
             plz:type:"string", index:"not_analyzed"
-    mapping = bob
+    mapping = tbob
       .type "Projekt"
       .metaTree mapper
     expect(mapping).to.eql

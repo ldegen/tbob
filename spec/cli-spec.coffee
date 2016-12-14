@@ -18,7 +18,7 @@ describe "The Command Line Interface", ->
   mockProcess = undefined
   tmpDir = undefined
   homeDir = undefined
-  bobDir = undefined
+  tbobDir = undefined
   worldDir = undefined
   subDir = undefined
   cli = undefined
@@ -32,8 +32,8 @@ describe "The Command Line Interface", ->
   beforeEach  ->
     tmpDir = tmpFileName()
     homeDir = Path.join tmpDir, "home"
-    bobDir = Path.join homeDir, "bob"
-    worldDir = Path.join bobDir, "world"
+    tbobDir = Path.join homeDir, "tbob"
+    worldDir = Path.join tbobDir, "world"
     subDir = Path.join worldDir, "subdir"
 
     alternativeWorldDir = Path.join tmpDir, "world"
@@ -41,9 +41,9 @@ describe "The Command Line Interface", ->
 
     mockProcess = (argv,input)=>
       stdin:Source [input]
-      env:GEPRIS_HOME: homeDir
+      env:TBOB_HOME: homeDir
       argv:["/path/to/node", "/path/to/main", argv...]
-    mockBobTransform = (worldDescription, opts)->
+    mockTBobTransform = (worldDescription, opts)->
       t = new Transform
         objectMode:true
         transform: (chunk,enc,done)->
@@ -55,7 +55,7 @@ describe "The Command Line Interface", ->
       t.worldDescription = worldDescription
       t
     Cli = (args...)->Cli0 mockProcess( args...),
-      BobTransform: mockBobTransform
+      TBobTransform: mockTBobTransform
     sink = Sink()
 
     mkdir subDir
@@ -209,7 +209,7 @@ describe "The Command Line Interface", ->
     beforeEach ->
       cli = Cli ['-b'], ""
 
-    it "configures the Bob Transform to include doc types", ->
+    it "configures the TBob Transform to include doc types", ->
       expect(cli.filter().opts).to.eql
         mode:"duplex"
 
@@ -263,7 +263,7 @@ describe "The Command Line Interface", ->
     beforeEach ->
       cli = Cli ["-m"]
 
-    it "sets the BobTransform into 'duplex'-mode", ->
+    it "sets the TBobTransform into 'duplex'-mode", ->
       expect(cli.filter().opts.mode).to.eql "duplex"
 
     it "uses an TransformToMapping instance in the output chain", ->
