@@ -1,1 +1,1 @@
-module.exports.Cli = require "./cli.coffee"
+module.exports.Cli = require "./cli"
