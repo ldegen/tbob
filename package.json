@@ -3,7 +3,7 @@
   "name": "tbob",
   "version": "0.2.0",
   "description": "Create example data for test cases. Inspired by rosiejs/rosie",
-  "main": "src/main.js",
+  "main": "lib/api.js",
   "bin": {
     "tbob": "main.js"
   },
