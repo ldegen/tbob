@@ -4,12 +4,12 @@ module.exports = (body)->
   Trait = require "./trait"
   {optionalT, opaqueT, refT, listT, dictT, scalarT, nilT} = require "./type"
   namedTraits = undefined
-  
+
   lookupTrait = (name)-> namedTraits[name]
 
   merge = (objs...)->
     q={}
-    q[key]=value for key,value of o for o in objs
+    (q[key]=value) for key,value of o for o in objs
     q
 
   variant = (factoryName, traitNames...)->
@@ -66,8 +66,8 @@ module.exports = (body)->
       # Inline traits, although anonymous, must be referrable via global symbol lookup.
       # This is a technical necessity with the current implementation as it allows us
       # to symbolic backreferences to "parent" traits which can be lazily resolved on demand.
-      # 
-      # The parent links are important to allow for local aliasing and quasi-lexical 
+      #
+      # The parent links are important to allow for local aliasing and quasi-lexical
       # scope chains. (think: recursive data structures!)
       cx.root.store "factory", (nestedCx.path.join "/"), trait
       [trait]
@@ -178,7 +178,7 @@ module.exports = (body)->
     deps = (cx.store "extend", "list") ? []
     deps.push (variant baseName, traitNames...)...
     cx.store "extend", "list", deps
-    
+
   metaDirective = (cx)->(metadata)->
     cx.store "meta", name, value for name,value of metadata
 
@@ -238,7 +238,7 @@ module.exports = (body)->
   namedTraits = {}
   for globalName, trait of worldCx.store "factory"
     namedTraits[globalName] = trait
-    
+
 
   #console.error "namedTraits", Object.keys namedTraits
   sequence: (factoryName, traitNames...)->
