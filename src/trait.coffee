@@ -51,16 +51,16 @@ Trait=(opts={})->
       debug "resolved (via local alias): ",symbol, self
       return self
 
-    obj = parent()?.resolveLocal? symbol 
+    obj = parent()?.resolveLocal? symbol
     if obj?
       debug "resolved (via parent):", symbol, obj
       return obj
 
-    obj = instance symbol 
+    obj = instance symbol
     if obj?
       debug "resolved (via id-match):", symbol, obj
       return obj
-    
+
     obj = resolveGlobal symbol
     if obj?
       debug "resolved (via global lookup):", symbol, obj
@@ -72,7 +72,7 @@ Trait=(opts={})->
     if value instanceof Attribute
       attrs[key] = value
     else
-      attrs[key] = Attribute key, merge value, 
+      attrs[key] = Attribute key, merge value,
         substitute: resolveLocal
         context: opts.context
 
@@ -177,7 +177,11 @@ createSequence = (traits)->
       debug "t", t
     id:t.id()
     trait: t
-    pre: if i>0 then [t.dependencies()...,arr[i-1]] else t.dependencies().slice()
+    pre:
+      if i>0
+        [t.dependencies()...,arr[i-1]]
+      else
+        t.dependencies().slice()
   todo = traits
     .map augment
     .reverse()
@@ -213,9 +217,9 @@ createSequence = (traits)->
   type: -> typeForSeq sortedTraits
   unsafeOverrides: -> unsafeOverrides sortedTraits
   missingAttributes: -> missingAttributes sortedTraits
-  factory: -> 
+  factory: ->
     factoryForTraits sortedTraits
-  
+
 
 
 factoryCache = {}
@@ -229,7 +233,7 @@ createFactory = (sortedTraits)->
   factory.after -> t.docCount++ for t in sortedTraits
 
   factory
-  
+
 module.exports = Trait
 module.exports.sequence = sequence
 

@@ -10,8 +10,10 @@ module.exports = (name, desc={})->
     factory.option name, deps, fill
   sequenceSemantics = (factory, name,deps,fill)->
     throw new Error "sequences are not working correctly yet!"
-    # need to flip first two args, because apply code expects first arg to be self ref
-    factory.sequence name, deps, (pos,args...) -> fill args[0],pos, args[1...]...
+    # need to flip first two args, because apply
+    # code expects first arg to be self ref
+    factory.sequence name, deps, (pos,args...) ->
+      fill args[0],pos, args[1...]...
 
   semantics = switch desc.apply ? "plain"
     when "plain" then plainSemantics
@@ -19,9 +21,11 @@ module.exports = (name, desc={})->
     when "sequence" then sequenceSemantics
     else desc.apply
   if typeof semantics isnt "function"
-    throw  new Error "The Value of the `apply`-option must be 'plain', 'option', 'sequence' or a function"
+    throw  new Error "The Value of the `apply`-option must be 'plain',
+                      'option', 'sequence' or a function"
   deps = desc.deps ? []
-  fill = desc.fill ? -> if sequence()? then {} else null #as a special exception, default doc specs to {} rathern than null.
+  #as a special exception, default doc specs to {} rathern than null.
+  fill = desc.fill ? -> if sequence()? then {} else null
   substitute= desc.substitute ? ->null
   sequence= ->
     traitsAndRefs = desc.traits ? []
@@ -47,9 +51,9 @@ module.exports = (name, desc={})->
   apply: (factory)->
     build = (fillSpec, buildCx)->
       seq = sequence()
-      if seq? 
-        seq.factory().build(fillSpec, buildCx) 
-      else 
+      if seq?
+        seq.factory().build(fillSpec, buildCx)
+      else
         fillSpec
     # wrap fill strategy: to be on the safe side we add a dependency
     # to the attribute itself. By convention, rosie will pass overrides

@@ -1,3 +1,4 @@
+# coffeelint: disable=max_line_length
 describe "An Attribute", ->
   Factory = require "../src/factory"
   Attribute = require "../src/attribute"
@@ -74,8 +75,6 @@ describe "An Attribute", ->
         bang:['opaque']
       ]
 
-    xit "will complain, if the type resulting from the traits is not consistent with the specified type", ->
-      a= Attribute "foo", traits:["bang"], type: ()->listT documentT
 
     it "populates nested documents using an apropriate factory", ->
       a = Attribute "foo", traits:[t0,t1]

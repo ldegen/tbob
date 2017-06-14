@@ -2,7 +2,7 @@
 
 Trait = require "../src/trait"
 Attribute = require "../src/attribute"
-{Factory} = require "rosie"
+Factory = require "../src/factory"
 
 {optionalT, opaqueT, scalarT} = Type = require "../src/type"
 describe "A Trait", ->
@@ -99,7 +99,7 @@ describe "A application sequence", ->
       foo: ['scalar', 'string']
     ]
   it "merges metadata from all involved traits", ->
-    a = Trait 
+    a = Trait
       meta:
         fump:4
         fonk:42
@@ -108,17 +108,17 @@ describe "A application sequence", ->
           type: scalarT "string"
         bar:
           type: scalarT "any"
-          meta: 
+          meta:
             boing: 2
             bumm: 3
-    b = Trait 
+    b = Trait
       meta:
         fump:2
         fnord:3
       attributes:
         bar:
           type: scalarT "number"
-          meta: 
+          meta:
             bumm:4
             krach:5
         baz:

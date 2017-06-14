@@ -1,7 +1,7 @@
 toposort = require "toposort"
 list2obj = require "./list2obj"
 identity = (x)->x
-module.exports = class MyFactory 
+module.exports = class MyFactory
   constructor: (cxTransform=identity)->
     attrOrder = null
     edges=[]
@@ -23,8 +23,8 @@ module.exports = class MyFactory
       edges.push [dep, name] for dep in deps when dep != name #ignore trivial cycle
       attrOrder = null
     @build = (fillSpec0={}, buildCx=null)->
-      # since we *know* that we build a document (not a list, scalar, etc), 
-      # we conclude that the fillSpec should be a dict. 
+      # since we *know* that we build a document (not a list, scalar, etc),
+      # we conclude that the fillSpec should be a dict.
       # For convenience (think s-expressions!) we
       # support lists of alternating keys and values.
       fillSpec = list2obj fillSpec0
@@ -44,9 +44,9 @@ module.exports = class MyFactory
       for attrName in attrOrder
         attr = attrs[attrName]
         fillArgs = (attr.deps ? []).map (depName)->
-          if attrName == depName 
+          if attrName == depName
             # mimic rosies behaviour for trivial cycles
-            fillSpec[depName] 
+            fillSpec[depName]
           else
             attributeValues[depName]
 

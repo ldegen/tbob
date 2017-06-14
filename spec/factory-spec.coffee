@@ -1,5 +1,4 @@
 describe "Our customized Factory", ->
-  rosie = require "rosie"
   Factory = require "../src/factory"
   f = undefined
   beforeEach ->
