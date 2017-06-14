@@ -5,11 +5,11 @@ describe "The TBob Transform", ->
   tbob = undefined
   scenarioNo = undefined
   world = ->
-  MockTBob = ()->
+  MockTBob = (_,opts)->
     scenarioNo++
-    build: (args...)->["Scenario #{scenarioNo}", args...]
-    type: (args...)->["Scenario #{scenarioNo}", "type", args...]
-    metaTree: (args...)->["Scenario #{scenarioNo}", "metaTree", args...]
+    build: (args...)->["Scenario #{opts?.foo ?scenarioNo}", args...]
+    type: (args...)->["Scenario #{opts?.foo ?scenarioNo}", "type", args...]
+    metaTree: (args...)->["Scenario #{opts?.foo ?scenarioNo}", "metaTree", args...]
 
   beforeEach ->
     scenarioNo=0
@@ -20,6 +20,29 @@ describe "The TBob Transform", ->
       ["Projekt"]
     ]
 
+  describe "in any mode", ->
+    it "can run input chunks through a preprocessor", ->
+      tbob = TBobTransform world, world:MockTBob, preprocess: ([head,tail...])->
+        [head,"MyTrait",tail...]
+      source
+        .pipe tbob
+        .pipe sink
+      expect(sink.promise).to.eventually.eql [
+        ["Scenario 1", "Projekt", "MyTrait", "ab_gesperrt", title:"SFB 42: Space Shuttle"]
+        ["Scenario 1", "Projekt", "MyTrait", "rahmenprojekt"]
+        ["Scenario 1", "Projekt", "MyTrait"]
+      ]
+    it "can pass options to the world", ->
+      tbob = TBobTransform world, world:MockTBob, options:foo:42, ->
+        [head,"MyTrait",tail...]
+      source
+        .pipe tbob
+        .pipe sink
+      expect(sink.promise).to.eventually.eql [
+        ["Scenario 42", "Projekt", "ab_gesperrt", title:"SFB 42: Space Shuttle"]
+        ["Scenario 42", "Projekt", "rahmenprojekt"]
+        ["Scenario 42", "Projekt"]
+      ]
   describe "in scenario mode", ->
     beforeEach ->
       tbob = TBobTransform world, world:MockTBob, mode:'scenario'
@@ -36,7 +59,8 @@ describe "The TBob Transform", ->
       ,
         p1: ["Projekt"]
       ]
-    it "treats each chunk of input as a description of a separate scenario, containing an arbitrary number of (named) documents",->
+    it "treats each chunk of input as a description of a separate scenario, containing
+        an arbitrary number of (named) documents",->
       source
         .pipe tbob
         .pipe sink
@@ -48,9 +72,8 @@ describe "The TBob Transform", ->
       ]
 
   describe "in document mode", ->
-    beforeEach ->
-      tbob = TBobTransform world, world:MockTBob, mode:'document'
     it "treats input chunks as document specs all belonging to the same scenario", ->
+      tbob = TBobTransform world, world:MockTBob, mode:'document'
       source
         .pipe tbob
         .pipe sink
@@ -59,6 +82,7 @@ describe "The TBob Transform", ->
         ["Scenario 1", "Projekt", "rahmenprojekt"]
         ["Scenario 1", "Projekt"]
       ]
+
   describe "in type mode", ->
     beforeEach ->
       tbob = TBobTransform world, world:MockTBob, mode:'type'
