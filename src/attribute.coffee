@@ -68,7 +68,7 @@ module.exports = (name, desc={})->
       fillSpec =
         if override? and not (name in deps)
           override
-        else if desc?.meta?.derived or not @transformMode
+        else if desc?.meta?.derived or not @onlyFillDerivedAttributes
           fill.call this, attrs...
       try
         childCx =  BuildContext(this)._mkChild name

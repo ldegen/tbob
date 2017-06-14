@@ -35,7 +35,7 @@ describe "An Attribute", ->
     a = Attribute "foo", type: t
     expect(a.type()).to.equal t
 
-  describe "when applied in a buildCx with `transformMode: true`", ->
+  describe "when applied in a buildCx with `onlyFillDerivedAttributes: true`", ->
     
     it "will only use its fill strategy if it was annotated as `derived`", ->
       attributes = [
@@ -51,7 +51,7 @@ describe "An Attribute", ->
 
       attr.apply f for attr in attributes
 
-      expect(f.build {bar:12}, transformMode:true).to.eql
+      expect(f.build {bar:12}, onlyFillDerivedAttributes:true).to.eql
         bar: 12
         foo: null
         baz: 4711
