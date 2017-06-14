@@ -35,6 +35,27 @@ describe "An Attribute", ->
     a = Attribute "foo", type: t
     expect(a.type()).to.equal t
 
+  describe "when applied in a buildCx with `transformMode: true`", ->
+    
+    it "will only use its fill strategy if it was annotated as `derived`", ->
+      attributes = [
+        Attribute "foo",
+          fill: -> 42
+          type: optionalT opaqueT
+        Attribute "bar",
+          fill: -> 23
+        Attribute "baz",
+          fill: -> 4711
+          meta: derived: true
+      ]
+
+      attr.apply f for attr in attributes
+
+      expect(f.build {bar:12}, transformMode:true).to.eql
+        bar: 12
+        foo: null
+        baz: 4711
+
   describe "with non-trivial value type", ->
     Trait = require "../src/trait"
 

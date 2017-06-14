@@ -65,10 +65,11 @@ module.exports = (name, desc={})->
       # strategy does *not* explicitly handle this, we
       # ignore the fill strategy completely and give preference to
       # the override
-      fillSpec = if override? and not (name in deps)
-        override
-      else
-        fill.call this, attrs...
+      fillSpec =
+        if override? and not (name in deps)
+          override
+        else if desc?.meta?.derived or not @transformMode
+          fill.call this, attrs...
       try
         childCx =  BuildContext(this)._mkChild name
         val = type().constructValue build, fillSpec, childCx
