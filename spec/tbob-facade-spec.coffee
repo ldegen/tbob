@@ -4,16 +4,16 @@ describe "The TBob Facade", ->
 
   it "provides a convenient API for building documents", ->
     facade = Facade dsl ->
-        @factory "Beteiligung", ->
-          @attr "perId"
-          @trait "verstorben", ->
-            @attr "aktiv", false
-        @factory "Projekt", ->
-          @attr "ehemalige",  @list @ref "Beteiligung", "verstorben"
-      doc1 = facade.build "Beteiligung", "verstorben", perId:12
-      expect(doc1).to.eql
-        perId:12
-        aktiv:false
+      @factory "Beteiligung", ->
+        @attr "perId"
+        @trait "verstorben", ->
+          @attr "aktiv", false
+      @factory "Projekt", ->
+        @attr "ehemalige",  @list @ref "Beteiligung", "verstorben"
+    doc1 = facade.build "Beteiligung", "verstorben", perId:12
+    expect(doc1).to.eql
+      perId:12
+      aktiv:false
 
   it "makes itself and other interesting stuff available to fill strategies", ->
     facade = Facade dsl ->

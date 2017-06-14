@@ -45,7 +45,8 @@ module.exports = (process, { TBobTransform, TransformToBulk, TransformToMapping,
   else
     TBOB_HOME = process.env.TBOB_HOME
     if not TBOB_HOME?
-      throw new Error("Please set the environment variable TBOB_HOME or use -w to tell me were your factory definitions are located")
+      throw new Error("Please set the environment variable TBOB_HOME
+                       or use -w to tell me were your factory definitions are located")
 
     tbobDir =  path.join TBOB_HOME, 'tbob'
     worldDir = path.join tbobDir, 'world'
