@@ -206,7 +206,7 @@ describe "The Command Line Interface", ->
 
   it "can be configured to only fill attributes that are marked as `derived`", ->
     cli = Cli ['-d'], ""
-    expect(cli.filter().opts.onlyFillDerivedAttributes).to.equal true
+    expect(cli.filter().opts.options.onlyFillDerivedAttributes).to.equal true
   describe "when asked to produce ES Bulk output", ->
     beforeEach ->
       cli = Cli ['-b'], ""
