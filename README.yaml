@@ -69,6 +69,12 @@ options:
     description: |
       Do not output actual documents but ElasticSearch mappings.
 
+  - short: d
+    long: only-fill-derived
+    description: |
+      Do *not* auto-fill missing attributes *unless* they carry
+      the annotation `derived: true`
+
   - short: M
     long: upload-mapping
     description: |

@@ -39,7 +39,7 @@ describe "The Command Line Interface", ->
     alternativeWorldDir = Path.join tmpDir, "world"
     alternativeSubDir = Path.join alternativeWorldDir, "subdir"
 
-    mockProcess = (argv,input)=>
+    mockProcess = (argv,input)->
       stdin:Source [input]
       env:TBOB_HOME: homeDir
       argv:["/path/to/node", "/path/to/main", argv...]
@@ -204,14 +204,15 @@ describe "The Command Line Interface", ->
 
     expect(list).to.eql ["foo","bar"]
 
-
+  it "can be configured to only fill attributes that are marked as `derived`", ->
+    cli = Cli ['-d'], ""
+    expect(cli.filter().opts.onlyFillDerivedAttributes).to.equal true
   describe "when asked to produce ES Bulk output", ->
     beforeEach ->
       cli = Cli ['-b'], ""
 
     it "configures the TBob Transform to include doc types", ->
-      expect(cli.filter().opts).to.eql
-        mode:"duplex"
+      expect(cli.filter().opts.mode).to.eql "duplex"
 
     it "includes a TransformToBulk instance in the output pipeline", ->
       expect(cli.output()[0]).is.an.instanceOf TransformToBulk
@@ -288,7 +289,8 @@ describe "The Command Line Interface", ->
 
   describe "when given non-option arguments", ->
     beforeEach ->
-      cli = Cli ["-f","sexp","(Projekt supergrün (id 42))", "(Auto sportlich (id 21))"], "Yeah that's right, just ignore me..."
+      cli = Cli ["-f","sexp","(Projekt supergrün (id 42))", "(Auto sportlich (id 21))"],
+        "Yeah that's right, just ignore me..."
 
       pipeline cli.input(), sink
     it "feeds them into the input pipeline, ignoring stdin", ->

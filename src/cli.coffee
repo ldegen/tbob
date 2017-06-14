@@ -130,6 +130,7 @@ module.exports = (process, { TBobTransform, TransformToBulk, TransformToMapping,
       when argv.bulk or argv.uploadBulk then "duplex"
       when argv.mapping or argv.uploadMapping then "duplex"
       else "document"
+    onlyFillDerivedAttributes: argv.onlyFillDerived
   }
 
   bulkOptions=
