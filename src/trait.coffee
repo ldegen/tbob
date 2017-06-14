@@ -202,7 +202,7 @@ createSequence = (traits)->
   if edges.length  > 0
     sortedTraits = toposort(edges).reverse()
   else
-    sortedTraits = [v.trait] for _,v of done
+    sortedTraits = (v.trait for _,v of done)
 
   resolve = (symbol)->
     traits=symbol.toString()
