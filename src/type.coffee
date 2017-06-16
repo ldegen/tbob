@@ -15,7 +15,7 @@ applySubst= (impl) -> (s, path0=[]) ->
   delete @_refs
   ref.target=replacement for ref in refs
   replacement
-    
+
 augmentCx = require "./build-context"
 constructPlain = (build, spec, cx)->
   augmented = augmentCx cx
@@ -27,7 +27,7 @@ expand = (impl) -> (t) ->
   if t.structure() == "recursive"
     throw new Error "dangling recursive reference" if not t.target?
     impl t.target
-  else 
+  else
     impl t
 
 opaque = do ->
@@ -53,7 +53,7 @@ scalar = do ->
         scalar "boolean"
         scalar "number"
         scalar "any"
-        bottom() 
+        bottom()
       ]
     string:
       constructValue: constructPlain
@@ -120,13 +120,13 @@ document = (attrs,meta=null)->
           result[attrName] = attrType.metaTree(combine)
       result
     combine.call this, meta?.self, meta?.attributes, subtrees
-    
-        
+
+
   applySubst: applySubst (s, path)->
     attrs_ = {}
     attrs_[key] = val.applySubst s, path for key,val of attrs
     document attrs_,meta
-    
+
   describe: ()->
     d = {}
     d[key] = value.describe() for key,value of attrs
@@ -149,7 +149,7 @@ document = (attrs,meta=null)->
       return false unless type0.includes type1
     true
 
-describeNested = ()-> 
+describeNested = ()->
   nested = @nestedType.describe()
   [@structure(), nested...]
 
@@ -268,7 +268,7 @@ recursive = (depth)->
     else
       # otherwise we "expand" another instance
       @target.includes t
-      
+
 module.exports = Type =
   construct:(description)->
     throw new Error "please tell me what you want to construct" if not description?.length
