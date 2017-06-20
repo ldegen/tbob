@@ -8,6 +8,7 @@ module.exports = ({trait, sequence}, buildOptions)->
       traitNames:traitNames
       fillSpec:fillSpec
       world: world
+      type: sequence(factoryName, traitNames...).type()
 
   trait: trait
   sequence: sequence

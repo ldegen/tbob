@@ -65,10 +65,15 @@ module.exports = (name, desc={})->
       # strategy does *not* explicitly handle this, we
       # ignore the fill strategy completely and give preference to
       # the override
+
+
+      attrIsDerived = desc?.meta?.derived
+      containingTypeIsDerived = @type.meta()?.derived
+
       fillSpec =
         if override? and not (name in deps)
           override
-        else if desc?.meta?.derived or not @onlyFillDerivedAttributes
+        else if attrIsDerived or containingTypeIsDerived or not @onlyFillDerivedAttributes
           fill.call this, attrs...
       try
         childCx =  BuildContext(this)._mkChild name
