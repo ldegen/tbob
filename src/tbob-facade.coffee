@@ -1,11 +1,13 @@
-module.exports = ({trait, sequence})->
+module.exports = ({trait, sequence, buildOptions})->
   SigMatch = require "./signature-matcher"
   esMapper = require "./es-mapper"
+  merge = require "./merge"
   buildCx = (factoryName,traitNames, fillSpec, world)->
-    factoryName:factoryName
-    traitNames:traitNames
-    fillSpec:fillSpec
-    world: world
+    merge buildOptions,
+      factoryName:factoryName
+      traitNames:traitNames
+      fillSpec:fillSpec
+      world: world
 
   trait: trait
   sequence: sequence
