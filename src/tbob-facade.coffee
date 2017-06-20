@@ -1,4 +1,4 @@
-module.exports = ({trait, sequence, buildOptions})->
+module.exports = ({trait, sequence}, buildOptions)->
   SigMatch = require "./signature-matcher"
   esMapper = require "./es-mapper"
   merge = require "./merge"
