@@ -68,7 +68,7 @@ module.exports = (name, desc={})->
 
 
       attrIsDerived = desc?.meta?.derived
-      containingTypeIsDerived = @type.meta()?.derived
+      containingTypeIsDerived = @type?.meta()?.derived
 
       fillSpec =
         if override? and not (name in deps)
