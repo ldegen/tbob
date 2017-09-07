@@ -182,6 +182,25 @@ describe "The DSL", ->
         attributes: title: es:index:"analyzed"
       ]
 
+    it "can create hidden attributes via the fluent syntax", ->
+      world = dsl ->
+        @factory "Foo", ->
+          @attr "val", @string, ["seed"], (seed)-> "planted "+seed
+          @attr "seed"
+            .type @string
+            .semantics "option"
+      trace =  []
+      mockFactory =
+        attr: (name)->trace.push ['attr',name]
+        option: (name)->trace.push ['option', name]
+      world.trait("Foo").apply mockFactory
+      expect(trace).to.eql [
+        ['attr', 'val']
+        ['option', 'seed']
+      ]
+
+
+
 
 
 
