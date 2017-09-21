@@ -285,6 +285,18 @@ describe "The Command Line Interface", ->
       expect(tf).to.be.an.instanceOf TransformToMapping
       expect(sink).to.be.an.instanceOf PutMappingSink
       expect(sink.opts).to.eql index:"project", reset:true
+    it "can tell the Sink to upload index-level settings", ->
+      settingsFile = (Path.join tmpDir, "index-level-settings.coffee")
+      fs.writeFileSync settingsFile, """
+      module.exports =
+        wichtige: einstellung: 42
+      """
+      cli = Cli ["-M","-S", settingsFile]
+      [tf, ..., sink] = cli.output()
+      expect(tf).to.be.an.instanceOf TransformToMapping
+      expect(sink).to.be.an.instanceOf PutMappingSink
+      expect(sink.opts).to.eql index:"project", reset:false, settings:wichtige:einstellung:42
+
 
 
   describe "when given non-option arguments", ->

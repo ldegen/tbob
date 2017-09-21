@@ -200,7 +200,12 @@ module.exports = (process, { TBobTransform, TransformToBulk, TransformToMapping,
       chain.push sink
     else if argv.uploadMapping
       client = new Client host:host, keepAlive=false
-      sink = new PutMappingSink client, index:index, reset:argv.clearIndex
+      params = index:index, reset:argv.clearIndex
+      if argv.indexSettings?
+        params.settings = require path.resolve argv.indexSettings 
+        
+      sink = new PutMappingSink client,params
+
       sink.promise.finally -> client.close()
       chain.push sink
     else

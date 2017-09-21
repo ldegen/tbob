@@ -3,7 +3,7 @@
 Promise = require "bluebird"
 module.exports = class PutMappingSink extends Writable
   constructor: (client, opts={})->
-    @opts = {index, reset}=opts
+    @opts = {index, reset,settings}=opts
     prepared = false
     super 
       objectMode:true
@@ -12,8 +12,12 @@ module.exports = class PutMappingSink extends Writable
         prepare = (
           if reset and not prepared
             client.indices.delete index:index, ignore: 404
-              .then -> client.indices.create index:index
-
+              .then -> client.indices.create if settings? then {index, body:settings:settings} else {index}
+          else if settings? and not prepared
+            client.indices.close index:index
+              .then -> client.indices.putSettings index:index, body:settings
+              .then -> client.indices.open index:index
+              .then -> client.cluster.health index:index, level:'indices', waitForStatus:'yellow'
           else 
             Promise.resolve()
         )

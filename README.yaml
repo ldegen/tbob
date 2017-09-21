@@ -85,6 +85,14 @@ options:
     description: |
       Used in conjunction with `-M`. It will drop and recreate the ElasticSearch index.
 
+  - short: S
+    long: index-settings
+    argument: PATH
+    description: |
+      Used in conjunction with `-M`. It will put the index-level settings found in `PATH`
+      before uploading the mapping(s). `PATH` should be a file that can be loaded using
+      `require`. (i.e. JSON or a CommonJS Module written in some language nodejs understands)
+
   - short: u
     long: es-url
     argument: URL

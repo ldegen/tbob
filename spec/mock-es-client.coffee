@@ -10,6 +10,10 @@ module.exports = mockEsClient = ->
   bulk: (data, callback)->
     calls.push ['bulk',data]
     resolve callback
+  cluster:
+    health: (data,callback)->
+      calls.push ['clusterHealth', data]
+      resolve callback
   indices:
     putMapping: (data,callback)->
       calls.push ['putMapping', data]
@@ -25,4 +29,10 @@ module.exports = mockEsClient = ->
       resolve callback
     delete: (data, callback)->
       calls.push ['deleteIndex', data]
+      resolve callback
+    close: (data, callback)->
+      calls.push ['closeIndex', data]
+      resolve callback
+    open: (data, callback)->
+      calls.push ['openIndex', data]
       resolve callback
