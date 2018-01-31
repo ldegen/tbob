@@ -4,4 +4,8 @@ module.exports =
   Type: require "./type"
   Facade: require "./tbob-facade"
   Transform: require "./tbob-transform"
+  PutMappingSink: require "./put-mapping-sink"
+  BulkIndexSink: require "./bulk-index-sink"
+  TransformToBulk: require "./transform-to-bulk"
+  TransformToMapping: require "./transform-to-mapping"
 
