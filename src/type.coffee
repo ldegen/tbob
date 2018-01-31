@@ -23,6 +23,22 @@ constructPlain = (build, spec, cx)->
     throw new Error "expected something of type #{JSON.stringify @describe()}, but got '#{spec}'"
   build spec, augmented
 
+constructBoolean = (build, spec, cx)->
+  val = switch spec
+    when 'true', 'on', 'yes', 1, true then true
+    when 'false', 'off', 'no', 0, false then false
+    else throw new Error "not a valid boolean literal: '#{spec}'"
+  constructPlain.call this, build,val,cx
+
+constructNumber = (build, spec, cx)->
+  unless not spec? or /^[\+\-]?\d*\.?\d+(?:[Ee][\+\-]?\d+)?$/.test spec
+    throw new Error "not a valid number literal: '#{spec}'"
+  constructPlain.call this, build, Number(spec), cx
+
+constructString = (build, spec, cx)->
+  val = if spec? then "#{spec}" else spec
+  constructPlain.call this, build, val, cx
+
 expand = (impl) -> (t) ->
   if t.structure() == "recursive"
     throw new Error "dangling recursive reference" if not t.target?
@@ -56,21 +72,21 @@ scalar = do ->
         bottom()
       ]
     string:
-      constructValue: constructPlain
+      constructValue: constructString
       applySubst: ->this
       describe: -> ['scalar','string']
       structure: ->'scalar'
       contains: (v)->typeof v is "string"
       includes: expand (t)-> t in [(scalar "string"), bottom() ]
     number:
-      constructValue: constructPlain
+      constructValue: constructNumber
       applySubst: ->this
       describe: -> ['scalar','number']
       structure: -> 'scalar'
       contains: (v)->typeof v is "number"
       includes: expand (t)-> t in [(scalar "number"), bottom() ]
     boolean:
-      constructValue: constructPlain
+      constructValue: constructBoolean
       applySubst: ->this
       describe: -> ['scalar','boolean']
       structure: -> 'scalar'
