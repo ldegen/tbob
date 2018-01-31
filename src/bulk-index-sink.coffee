@@ -8,6 +8,7 @@ module.exports = class BulkIndexSink extends WritableBulk
       client.bulk {
         index: index
         body: bulkCmds
+        refresh: true
       }, callback
 
     super  bulkExec
