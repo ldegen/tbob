@@ -1,7 +1,7 @@
 {
   "private": false,
   "name": "tbob",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Create example data for test cases. Inspired by rosiejs/rosie",
   "main": "lib/api.js",
   "bin": {
