@@ -183,3 +183,19 @@ options:
       This option works like `-t` except that the given mapping type will be used for all
       documents, regardless of their respective type or meta-data.
 
+  - short: L
+    long: lookup-file
+    argument: PATH
+    description: |
+      This option can be used to pass lookup data to the world definition.
+      `PATH` should be a file that can be loaded using `require` (i.e. JSON or a CommonJS Module
+      written in some language nodejs understands). Fill strategies can access the data
+      through the member variable `@lookup`.
+
+  - short: E
+    long: es-version
+    argument: VERSION_NUMBER
+    description: |
+      Specify the version of ElasticSearch to assume.
+      Currently supported values are `2.4` (the default) or `6.1`.
+

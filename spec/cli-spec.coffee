@@ -207,6 +207,14 @@ describe "The Command Line Interface", ->
   it "can be configured to only fill attributes that are marked as `derived`", ->
     cli = Cli ['-d'], ""
     expect(cli.filter().opts.options.onlyFillDerivedAttributes).to.equal true
+
+  it "can pass a file with lookup data to the fill strategies et al.", ->
+    lookup = foo:bar:42
+    lookupFile = Path.join tmpDir, "lookup.json"
+    fs.writeFileSync lookupFile, JSON.stringify lookup
+    cli = Cli ['-L', lookupFile]
+    expect(cli.filter().opts.options.lookup).to.eql lookup
+
   describe "when asked to produce ES Bulk output", ->
     beforeEach ->
       cli = Cli ['-b'], ""
