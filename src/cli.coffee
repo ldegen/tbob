@@ -134,7 +134,7 @@ module.exports = (process, { TBobTransform, TransformToBulk, TransformToMapping,
       onlyFillDerivedAttributes: argv.onlyFillDerived
   }
   if argv.lookupFile?
-    tbobOptions.options.lookup = require argv.lookupFile
+    tbobOptions.options.lookup = require path.resolve argv.lookupFile
 
   bulkOptions=
     defaults:
