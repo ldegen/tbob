@@ -17,9 +17,9 @@ describe "ES-Bulk Transformation", ->
     ,
       _type: documentT {id: scalarT("number")}, self: es:
         type_attr:'type'
-        id_attr: 'id'
+        id_attr: 'weirdCustomId'
       _data:
-        id:43
+        weirdCustomId:43
         index: "special-index"
         type: "special-type"
     ,
@@ -44,7 +44,7 @@ describe "ES-Bulk Transformation", ->
         _type: "special-type"
         _id: 43
     ,
-      id:43
+      weirdCustomId: 43
       type: "special-type"
       index:'special-index'
     ]
@@ -72,6 +72,6 @@ describe "ES-Bulk Transformation", ->
         _id: 1337
         _index: 'special-index'
     ,
-      id:43
+      weirdCustomId: 43
       type: "special-type"
       index:'special-index'
