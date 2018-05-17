@@ -48,6 +48,8 @@ describe "The TBob Facade", ->
         @meta es:mapping:dynamic:false
         @attr "id"
           .meta es:mapping:type:"special-type"
+        @attr "foo"
+          .meta es:mapping:type:"string"
         @attr "bar", ->
           @attr "baz"
             .type @string
@@ -55,6 +57,7 @@ describe "The TBob Facade", ->
     expect(facade.esMapping "Foo").to.eql
       dynamic:false
       properties:
-        id: store:false, index:"not_analyzed", type:"special-type"
+        id: type:"special-type"
+        foo: store:false, index:"not_analyzed", type:"string"
         bar: properties:
           baz: store:false, index:"analyzed", analyzer:"german", type: "string"

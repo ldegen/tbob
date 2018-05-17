@@ -1,5 +1,16 @@
 put = require "./deep-put"
 merge = require "./merge"
+simpleTypes = [
+  "string"
+  "long"
+  "integer"
+  "short"
+  "byte"
+  "double"
+  "float"
+  "date"
+  "boolean"
+]
 module.exports = (self, attrs, subtrees)->
   tree = {}
   defaults = (attrName)=>
@@ -20,9 +31,10 @@ module.exports = (self, attrs, subtrees)->
   for name,subtree of subtrees()
     put tree, 'properties', name, subtree if Object.keys(subtree).length >0
   for name, meta of attrs when meta.es?.mapping
-    if meta.es.mapping.type is "nested" # es complains if I pass things like index:"not_analyzed" for the "nested" type.
-      put tree, 'properties', name, meta.es.mapping
-    else
+    t = meta.es.mapping.type
+    if not t or t in simpleTypes
       put tree, 'properties', name, (merge (defaults name), meta.es.mapping)
+    else
+      put tree, 'properties', name, meta.es.mapping
   
   merge tree, self?.es?.mapping
