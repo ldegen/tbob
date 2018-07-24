@@ -23,9 +23,16 @@ module.exports = (name, desc={})->
   if typeof semantics isnt "function"
     throw  new Error "The Value of the `apply`-option must be 'plain',
                       'option', 'sequence' or a function"
-  deps = desc.deps ? []
+  fillDeps = desc.fillDeps ? desc.deps ? []
+
   #as a special exception, default doc specs to {} rathern than null.
   fill = desc.fill ? -> if sequence()? then {} else null
+
+  # if no derive strategy is specified, we use identity.
+  # For this to work, the default derive strategy depends on the attribute itself.
+  deriveDeps = desc.deriveDeps ? if desc.derive? then [] else [ name ]
+  derive = desc.derive ? (v)->(v) 
+
   substitute= desc.substitute ? ->null
   sequence= ->
     traitsAndRefs = desc.traits ? []
@@ -60,24 +67,46 @@ module.exports = (name, desc={})->
     # given for the attribute itself in the corresponding argument.
     # We use this to control how explicit overrides interact with the
     # fill strategy defined for the attribute
-    semantics factory, name, [name,deps...], (override,attrs...)->
-      # if an override for this attribute was given, and if the fill
-      # strategy does *not* explicitly handle this, we
-      # ignore the fill strategy completely and give preference to
-      # the override
-
+    #
+    # Also note that our dependencies *will* typically contain duplicates.
+    # In particular, we list the deps of the fill and derive strategies separately.
+    # This should not be a problem.
+    semantics factory, name, [name, fillDeps..., deriveDeps], (override,attrs...)->
 
       attrIsDerived = desc?.meta?.derived
       containingTypeIsDerived = @type?.meta()?.derived
 
-      fillSpec =
-        if override? and not (name in deps)
+      fillAttrs = attrs.slice 0, fillDeps.length
+      deriveAttrs0 = attrs.slice fillDeps.length
+
+      fillResult =
+        if override? and not (name in fillDeps)
+          # if an override for this attribute was given, and if the fill
+          # strategy does *not* explicitly handle this, we
+          # ignore the fill strategy completely and give preference to
+          # the override
           override
         else if attrIsDerived or containingTypeIsDerived or not @onlyFillDerivedAttributes
-          fill.call this, attrs...
+          fill.call this, fillAttrs...
+
+      # If the derive strategy depends on the attribute itself, it should consider the
+      # result of the fill strategy as input for the attribute. We first do a rough precondition check:
+      # If there is input for the current attribute, then the derive strategy *must* list it 
+      # as a dependency. Otherwise raise an error so the user knows that something weird is going on.
+      if fillResult? and not (name in deriveDeps)
+        throw new ErrorWithContext new Error ("You cannot provide input for a derived attribute unless you explicitly specify the attribute itself as dependency."),
+          attribute: name
+          context: desc.context
+          message: "Conflicting values for attribute '#{name}'"
+      
+      # replace our own value in the attributes passed to the derive strategy with the fill result.
+      deriveAttrs = deriveAttrs0.map (val, i)-> if name is deriveDeps[i] then fillResult else val
+      deriveResult = derive.call this, deriveAttrs...
+      
+
       try
         childCx =  BuildContext(this)._mkChild name
-        val = type().constructValue build, fillSpec, childCx
+        val = type().constructValue build, deriveResult, childCx
       catch e
         throw new ErrorWithContext e,
           attribute: name
@@ -86,7 +115,7 @@ module.exports = (name, desc={})->
       val
 
 
-  deps: ->deps
+  deps: ->[fillDeps..., deriveDeps...]
   meta: ->desc.meta ? {}
   type: type
   traits: ()->

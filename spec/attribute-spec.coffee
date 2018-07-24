@@ -2,6 +2,7 @@
 describe "An Attribute", ->
   Factory = require "../src/factory"
   Attribute = require "../src/attribute"
+  ErrorWithContext = require "../src/error-with-context"
   {documentT,dictT,listT,scalarT,opaqueT, optionalT} = require "../src/type"
 
   f=a=undefined
@@ -25,6 +26,7 @@ describe "An Attribute", ->
     a.apply f
     expect(f.build()).to.eql foo:42, other:21
 
+
   it "will respect overrides", ->
     foo = Attribute "foo", fill: ->42
     foo.apply f
@@ -35,7 +37,9 @@ describe "An Attribute", ->
     a = Attribute "foo", type: t
     expect(a.type()).to.equal t
 
-  describe "when applied in a buildCx with `onlyFillDerivedAttributes: true`", ->
+
+
+  describe "when applied in a buildCx with `onlyFillDerivedAttributes: true` (OBSOLETE!)", ->
     
     it "will only use its fill strategy if it was annotated as `derived`", ->
       attributes = [
@@ -169,3 +173,53 @@ describe "An Attribute", ->
             barf: "Surprise!"
             bang: "big"
           ]
+  describe "the `derive` strategy (see issue #13)", ->
+    it "works just like `fill`, but...", ->
+      f.attr "other", [], -> 21
+      a = Attribute "foo",
+        type: optionalT opaqueT()
+        deriveDeps:["other"]
+        derive:(other)->2*other
+      a.apply f
+      expect(f.build()).to.eql foo:42, other:21
+
+    it "normally rejects input for the attribute as it would conflict with the `derive`-strategy",->
+      a = Attribute "foo",
+        derive: ->"whatever"
+        type: optionalT opaqueT()
+      a.apply f
+      mistake = ->
+        f.build foo: "bad idea"
+      expect(mistake).to.throw(ErrorWithContext, "derived")
+
+    it "accepts input for the attribute if the `derive`-Strategy explicitly specifies it as a dependency", ->
+      a = Attribute "foo",
+        derive: (orig) ->"this is a "+orig
+        deriveDeps: ['foo']
+        type: optionalT opaqueT()
+      a.apply f
+      expect(f.build foo: "good idea").to.eql foo: "this is a good idea"
+
+    it "can take the result of a fill strategy as input...", ->
+      f.option "other", [], -> "lazy"
+      a = Attribute "foo",
+        fillDeps: ['other']
+        fill: -> "lazy"
+        deriveDeps: ['foo']
+        derive: (orig)->"Let's be #{orig}."
+        type: optionalT opaqueT()
+      a.apply f
+      expect(f.build()).to.eql foo: "Let's be lazy."
+
+    it "rejects the value created by fill unless the attribute itself is explicitly specified as dependency", ->
+      f.option "other", [], -> "lazy"
+      a = Attribute "foo",
+        fillDeps: ['other']
+        fill: -> "lazy"
+        deriveDeps: ['other']
+        derive: (other)->"Let's be #{other}."
+        type: optionalT opaqueT()
+      a.apply f
+      mistake = -> f.build()
+      expect(mistake).to.throw(ErrorWithContext, "derived")
+
