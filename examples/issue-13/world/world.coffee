@@ -4,9 +4,15 @@ module.exports = ->
       .type @optional @string
       .fill "In der Pampa"
 
-  @factory "AdresseES", ->
+  @factory "AdresseES_broken", ->
     @extend "Adresse"
-    @meta derived: true
+    @meta derived:true
     @attr "_sort"
       .type @optional @string
       .fill ["strasse"], (s)->s?.toLowerCase()
+
+  @factory "AdresseES_fixed", ->
+    @extend "Adresse"
+    @attr "_sort"
+      .type @optional @string
+      .derive ["strasse"], (s)->s?.toLowerCase()
