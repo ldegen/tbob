@@ -1,5 +1,6 @@
 describe "The DSL", ->
   dsl = require "../src/dsl"
+  Factory = require "../src/factory"
   world=undefined
   describe "when creating factories", ->
     beforeEach ->
@@ -169,6 +170,18 @@ describe "The DSL", ->
           aktiv: ["opaque"]
         ]
       ]
+
+    it "can define `fill` and `derive` strategies via the fluent syntax", ->
+      world = dsl ->
+        @factory "Foo", ->
+          @attr "bar"
+            .fill 21
+            .derive ['bar'], (orig)->2 * orig
+
+      t=world.trait "Foo"
+      f= new Factory
+      t.apply f
+      expect(f.build()).to.eql bar: 42
     it "can attach metadata to attributes via the fluent syntax", ->
       world = dsl ->
         @factory "Projekt", ->

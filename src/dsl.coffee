@@ -163,13 +163,23 @@ module.exports = (body)->
         opts.traits= typeExpr.traits name
         this
       match ".*", (args...)-> throw new Error("wrong signature for @attr.this")
-    fill: SigMatch (match)->
-      match "a,f", (dependencies, fillStrategy)->
-        opts.deps = dependencies
-        opts.fill = fillStrategy
+    derive: SigMatch (match)->
+      match "a,f", (dependencies, deriveStrategy)->
+        opts.deriveDeps = dependencies
+        opts.derive = deriveStrategy
         this
       match ".", (fillSpec)->
         opts.deps=[]
+        opts.derive= -> fillSpec
+        this
+      match ".*", (args...)-> throw new Error("wrong signature for @attr.derive")
+    fill: SigMatch (match)->
+      match "a,f", (dependencies, fillStrategy)->
+        opts.fillDeps = dependencies
+        opts.fill = fillStrategy
+        this
+      match ".", (fillSpec)->
+        opts.fillDeps=[]
         opts.fill= -> fillSpec
         this
       match ".*", (args...)-> throw new Error("wrong signature for @attr.fill")
