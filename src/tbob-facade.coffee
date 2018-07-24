@@ -2,6 +2,12 @@ module.exports = ({trait, sequence}, buildOptions)->
   SigMatch = require "./signature-matcher"
   esMapper = require "./es-mapper"
   merge = require "./merge"
+
+  # see #13: issue an deprecation warning for onlyFillDerivedAttributes
+
+  if buildOptions?.onlyFillDerivedAttributes?
+    console.error "WARNING: the use of the `-d` command line option (or equivalently the `onlyFillDerivedAttributes` API-Option) is deprecated. Please see https://github.com/ldegen/tbob/issues/13"
+
   buildCx = (factoryName,traitNames, fillSpec, world)->
     merge buildOptions,
       factoryName:factoryName
