@@ -74,6 +74,18 @@ options:
     description: |
       Do *not* auto-fill missing attributes *unless* they carry
       the annotation `derived: true`
+      
+      **This option is deprecated!** See https://github.com/ldegen/tbob/issues/13 for details.
+      For derived attributes, use `derive` instead of `fill` in your attribute definition and use
+      `-n` to disable completely disable `fill`-strategies.
+
+  - short: n
+    long: no-fill
+    description: |
+      Disable all `fill`-stratgies. Note that `derive`-strategies will still be used.
+      When you are using tbob to transform real data instead of producing
+      test data, this should be exactly what you want.
+
 
   - short: M
     long: upload-mapping

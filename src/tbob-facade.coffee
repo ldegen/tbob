@@ -5,7 +5,7 @@ module.exports = ({trait, sequence}, buildOptions)->
 
   # see #13: issue an deprecation warning for onlyFillDerivedAttributes
 
-  if buildOptions?.onlyFillDerivedAttributes?
+  if buildOptions?.onlyFillDerivedAttributes
     console.error "WARNING: the use of the `-d` command line option (or equivalently the `onlyFillDerivedAttributes` API-Option) is deprecated. Please see https://github.com/ldegen/tbob/issues/13"
 
   buildCx = (factoryName,traitNames, fillSpec, world)->

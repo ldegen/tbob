@@ -223,3 +223,24 @@ describe "An Attribute", ->
       mistake = -> f.build()
       expect(mistake).to.throw(ErrorWithContext, "derived")
 
+
+  describe "when applied in a buildCx with `disableFillStrategies: true`", ->
+
+    it "ignores all `fill` strategies", ->
+      f.attr "other", [], -> 21
+      a = Attribute "foo",
+        type: optionalT opaqueT()
+        fillDeps:["other"]
+        fill:(other)->2*other
+      a.apply f
+      expect(f.build {}, {disableFillStrategies: true}).to.eql foo:null, other:21
+
+    it "still uses the `derive` strategies", ->
+      f.attr "other", [], -> 20
+      a = Attribute "foo",
+        type: optionalT opaqueT()
+        deriveDeps:["other"]
+        derive:(other)->2*other
+      a.apply f
+      expect(f.build {},{disableFillStrategies: true} ).to.eql foo:40, other:20
+

@@ -132,6 +132,7 @@ module.exports = (process, { TBobTransform, TransformToBulk, TransformToMapping,
       else "document"
     options:
       onlyFillDerivedAttributes: argv.onlyFillDerived
+      disableFillStrategies: argv.noFill
   }
   if argv.lookupFile?
     tbobOptions.options.lookup = require path.resolve argv.lookupFile

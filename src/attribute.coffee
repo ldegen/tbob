@@ -78,15 +78,14 @@ module.exports = (name, desc={})->
 
       fillAttrs = attrs.slice 0, fillDeps.length
       deriveAttrs0 = attrs.slice fillDeps.length
-
       fillResult =
-        if override? and not (name in fillDeps)
+        if override? and not (name in fillDeps) or @disableFillStrategies
           # if an override for this attribute was given, and if the fill
           # strategy does *not* explicitly handle this, we
           # ignore the fill strategy completely and give preference to
           # the override
           override
-        else if attrIsDerived or containingTypeIsDerived or not @onlyFillDerivedAttributes
+        else if (attrIsDerived or containingTypeIsDerived or not @onlyFillDerivedAttributes)
           fill.call this, fillAttrs...
 
       # If the derive strategy depends on the attribute itself, it should consider the
