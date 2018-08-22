@@ -40,7 +40,7 @@ describe "An Attribute", ->
 
 
   describe "when applied in a buildCx with `onlyFillDerivedAttributes: true` (OBSOLETE!)", ->
-    
+
     it "will only use its fill strategy if it was annotated as `derived`", ->
       attributes = [
         Attribute "foo",
@@ -222,6 +222,15 @@ describe "An Attribute", ->
       a.apply f
       mistake = -> f.build()
       expect(mistake).to.throw(ErrorWithContext, "derived")
+
+    it "does not mind a fill strategy if no derive strategy was specified [counter check for the above case!]", ->
+      a = Attribute "foo",
+        fillDeps: []
+        fill: -> "lazy"
+        type: optionalT opaqueT()
+      a.apply f
+      mistake = -> f.build()
+      expect(f.build()).to.eql foo: "lazy"
 
 
   describe "when applied in a buildCx with `disableFillStrategies: true`", ->

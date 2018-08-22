@@ -92,7 +92,7 @@ module.exports = (name, desc={})->
       # result of the fill strategy as input for the attribute. We first do a rough precondition check:
       # If there is input for the current attribute, then the derive strategy *must* list it 
       # as a dependency. Otherwise raise an error so the user knows that something weird is going on.
-      if fillResult? and not (name in deriveDeps)
+      if fillResult? and desc.derive? and not (name in deriveDeps)
         throw new ErrorWithContext new Error ("You cannot provide input for a derived attribute unless you explicitly specify the attribute itself as dependency."),
           attribute: name
           context: desc.context
