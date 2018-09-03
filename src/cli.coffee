@@ -190,7 +190,7 @@ module.exports = (process, { TBobTransform, TransformToBulk, TransformToMapping,
       ]
   output: ->
     chain = []
-    host = argv.esUrl ? 'http://localhost:9200'
+    host = argv.esUrl ? process.env.ES_URL ? 'http://localhost:9200'
     index = argv.defaultIndex ? argv.overrideIndex ? 'project'
 
     if argv.bulk or argv.uploadBulk

@@ -110,7 +110,8 @@ options:
     argument: URL
     description: |
       Used in conjunction with `-B`, `-M` or `-C` to specify the API endpoint of the
-      elasticsearch node to upload to.
+      elasticsearch node to upload to. If ommited, the content of the variable `ES_URL`
+      will be used. If the variable is not set, `tbob` falls back to `http://localhost:9200`.
 
   - short: k
     long: default-id-attr
