@@ -71,7 +71,7 @@ module.exports = (name, desc={})->
     # Also note that our dependencies *will* typically contain duplicates.
     # In particular, we list the deps of the fill and derive strategies separately.
     # This should not be a problem.
-    semantics factory, name, [name, fillDeps..., deriveDeps], (override,attrs...)->
+    semantics factory, name, [name, fillDeps..., deriveDeps...], (override,attrs...)->
 
       attrIsDerived = desc?.meta?.derived
       containingTypeIsDerived = @type?.meta()?.derived
@@ -92,7 +92,13 @@ module.exports = (name, desc={})->
         # asks to handle it. So... call the fill strategy.
         # However, we try to respect the (now deprecated) `onlyFillDereivedAttributes` option as good as possible.
         else if (attrIsDerived or containingTypeIsDerived or not @onlyFillDerivedAttributes)
-          fill.call this, fillAttrs...
+          try
+            fill.call this, fillAttrs...
+          catch e
+            throw new ErrorWithContext e,
+              attribute: name
+              context: desc.context
+              message: "Fill-Strategy for attribute #{name} raised an exception."
 
       # If the derive strategy depends on the attribute itself, it should consider the
       # result of the fill strategy as input for the attribute. We first do a rough precondition check:
@@ -101,10 +107,6 @@ module.exports = (name, desc={})->
 
       
       if fillResult? and desc.derive? and not (name in deriveDeps)
-        # BEGIN debugging
-        #console.error "name", name
-        #console.error "desc", desc
-        # END debugging
         throw new ErrorWithContext new Error("You cannot provide input for a derived attribute unless you explicitly specify the attribute itself as dependency."),
           attribute: name
           context: desc.context
@@ -112,7 +114,13 @@ module.exports = (name, desc={})->
       
       # replace our own value in the attributes passed to the derive strategy with the fill result.
       deriveAttrs = deriveAttrs0.map (val, i)-> if name is deriveDeps[i] then fillResult else val
-      deriveResult = derive.call this, deriveAttrs...
+      try
+        deriveResult = derive.call this, deriveAttrs...
+      catch e
+        throw new ErrorWithContext e,
+          attribute: name
+          context: desc.context
+          message: "Derive-Strategy for attribute #{name} raised an exception."
       
 
       try
