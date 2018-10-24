@@ -1,5 +1,6 @@
 module.exports = class ErrorWithContext extends Error
   constructor: (nestedError, context0={})->
+    super()
     @name="ErrorWithContext"
     @originalStack = super.stack
     if typeof context0 is "string"

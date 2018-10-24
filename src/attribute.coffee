@@ -79,12 +79,18 @@ module.exports = (name, desc={})->
       fillAttrs = attrs.slice 0, fillDeps.length
       deriveAttrs0 = attrs.slice fillDeps.length
       fillResult =
+        # If an explicit value (a.k.a. override) is given, use it...
+        # ... UNLESS there is a fill strategy that lists the attribute itself as dependency.
+        # In the latter case, we assume the fill strategy explicitly wishes to transform even explicit values.
         if override? and not (name in fillDeps) or @disableFillStrategies
           # if an override for this attribute was given, and if the fill
           # strategy does *not* explicitly handle this, we
           # ignore the fill strategy completely and give preference to
           # the override
           override
+        # otherwise fill strategies are enabled and there either is no explicit value (override), or the fill strategy
+        # asks to handle it. So... call the fill strategy.
+        # However, we try to respect the (now deprecated) `onlyFillDereivedAttributes` option as good as possible.
         else if (attrIsDerived or containingTypeIsDerived or not @onlyFillDerivedAttributes)
           fill.call this, fillAttrs...
 
@@ -92,8 +98,14 @@ module.exports = (name, desc={})->
       # result of the fill strategy as input for the attribute. We first do a rough precondition check:
       # If there is input for the current attribute, then the derive strategy *must* list it 
       # as a dependency. Otherwise raise an error so the user knows that something weird is going on.
+
+      
       if fillResult? and desc.derive? and not (name in deriveDeps)
-        throw new ErrorWithContext new Error ("You cannot provide input for a derived attribute unless you explicitly specify the attribute itself as dependency."),
+        # BEGIN debugging
+        #console.error "name", name
+        #console.error "desc", desc
+        # END debugging
+        throw new ErrorWithContext new Error("You cannot provide input for a derived attribute unless you explicitly specify the attribute itself as dependency."),
           attribute: name
           context: desc.context
           message: "Conflicting values for attribute '#{name}'"
