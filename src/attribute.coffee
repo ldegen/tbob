@@ -26,7 +26,7 @@ module.exports = (name, desc={})->
   fillDeps = desc.fillDeps ? desc.deps ? []
 
   #as a special exception, default doc specs to {} rathern than null.
-  fill = desc.fill ? -> if sequence()? then {} else null
+  fill = desc.fill ? -> null #if sequence()? then {} else null
 
   # if no derive strategy is specified, we use identity.
   # For this to work, the default derive strategy depends on the attribute itself.
