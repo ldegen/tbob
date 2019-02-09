@@ -24,9 +24,8 @@
     "coffeelint": "^1.16.0",
     "coffeescript": "^1.12.7",
     "mkdirp": "^0.5.1",
-    "mocha": "^3.0.2",
+    "mocha": "^5.2.0",
     "mocha-jenkins-reporter": "^0.2.4",
-    "node-inspector": "^0.12.8",
     "rimraf": "^2.5.4"
   },
   "repository": {
