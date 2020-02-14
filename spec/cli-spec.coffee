@@ -299,6 +299,7 @@ describe "The Command Line Interface", ->
     it "uses an TransformToMapping instance in the output chain", ->
       expect(cli.output()[0]).to.be.an.instanceOf TransformToMapping
 
+
   describe "when asked to upload Mappings", ->
     beforeEach ->
       cli = Cli ["-M"]
@@ -327,6 +328,55 @@ describe "The Command Line Interface", ->
       expect(sink.opts).to.eql index:"project", reset:false, settings:wichtige:einstellung:42
 
 
+  describe "when using the -p / --pipe option", ->
+    it "can pipe documents to a custom nodejs writeable", ->
+      transformFile = Path.join tmpDir, "my-transform.coffee"
+      fs.writeFileSync transformFile, """
+      { Transform } = require "stream"
+      module.exports = (lookup)->
+        new Transform
+          objectMode: true
+          transform: (chunk, enc, done)->
+            @push wrapped:chunk
+            done()
+      """
+      
+      cli = Cli ["-p", transformFile]
+
+      outputChain = cli.output()
+      expect(outputChain.length).to.eql 1
+      [first,...] = outputChain
+      pipeline outputChain, sink
+
+      first.write {oink:42}
+      first.write {umf:"tata"}
+      first.end()
+
+      expect(sink.promise).to.eventually.eql [
+        wrapped:oink:42
+      ,
+        wrapped:umf: "tata"
+      ]
+
+    it "can determines the tbob mode from looking at the provided writable", ->
+      transformFile = Path.join tmpDir, "my-transform.coffee"
+      fs.writeFileSync transformFile, """
+      { Transform } = require "stream"
+      module.exports = (lookup)->
+        tf = new Transform
+          objectMode: true
+          transform: (chunk, enc, done)->
+            @push wrapped:chunk
+            done()
+        tf._tbobMode="duplex"
+        tf
+      """
+      
+      cli = Cli ["-p", transformFile]
+      expect(cli.filter().opts.mode).to.eql "duplex"
+
+
+      
 
   describe "when given non-option arguments", ->
     beforeEach ->

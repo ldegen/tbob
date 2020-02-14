@@ -4,7 +4,7 @@ module.exports = (process, { TBobTransform, TransformToBulk, TransformToMapping,
   #
   # TODO: be a good node.js citizen and make this an optional requirement.
   require "coffee-script/register"
-  {Readable, Transform} = require "stream"
+  {Writable, Readable, Transform} = require "stream"
   {Client} = require "elasticsearch"
   TBobTransform ?= require "./tbob-transform"
   TransformToBulk ?= require "./transform-to-bulk"
@@ -129,6 +129,7 @@ module.exports = (process, { TBobTransform, TransformToBulk, TransformToMapping,
 
   output = undefined
 
+
   tbobOptions = {
     mode: switch
       when argv.bulk or argv.uploadBulk then "duplex"
@@ -140,6 +141,26 @@ module.exports = (process, { TBobTransform, TransformToBulk, TransformToMapping,
   }
   if argv.lookupFile?
     tbobOptions.options.lookup = require path.resolve argv.lookupFile
+
+  # check for custom sink module
+  customSink = if argv.pipe?
+    # make sure that non of the conflicting options were given
+    if argv.bulk or argv.uploadBulk or argv.mapping or argv.uploadMapping
+      throw new Error "Cannot use -p together with any of -b, -B, -m, -M"
+    # create the writable
+    factory = require path.resolve argv.pipe
+    writable = factory tbobOptions.options.lookup
+
+    # check if it is infact a writable
+    if not writable instanceof Writable
+      throw new Error "Your custom sink module did not create Writable"
+
+    # determine tbob mode
+    mode = writable._tbobMode ? "document"
+    if not mode in ["document", "type", "duplex"]
+      throw new Error "Not a valid mode: #{mode}"
+    tbobOptions.mode = mode
+    writable
 
   bulkOptions=
     defaults:
@@ -194,30 +215,33 @@ module.exports = (process, { TBobTransform, TransformToBulk, TransformToMapping,
       ]
   output: ->
     chain = []
-    host = argv.esUrl ? process.env.ES_URL ? 'http://localhost:9200'
-    index = argv.defaultIndex ? argv.overrideIndex ? 'project'
-
-    if argv.bulk or argv.uploadBulk
-      chain.push new TransformToBulk bulkOptions
-    else if argv.mapping or argv.uploadMapping
-      chain.push new TransformToMapping bulkOptions
-    if argv.uploadBulk
-      client = new Client host:host, keepAlive=false
-      sink = new BulkIndexSink client, index:index
-      sink.promise.finally -> client.close()
-      chain.push sink
-    else if argv.uploadMapping
-      client = new Client host:host, keepAlive=false
-      params = index:index, reset:argv.clearIndex
-      if argv.indexSettings?
-        params.settings = require path.resolve argv.indexSettings 
-        
-      sink = new PutMappingSink client,params
-
-      sink.promise.finally -> client.close()
-      chain.push sink
+    if customSink?
+      chain.push customSink
     else
-      chain.push stringify(), process.stdout
+      host = argv.esUrl ? process.env.ES_URL ? 'http://localhost:9200'
+      index = argv.defaultIndex ? argv.overrideIndex ? 'project'
+
+      if argv.bulk or argv.uploadBulk
+        chain.push new TransformToBulk bulkOptions
+      else if argv.mapping or argv.uploadMapping
+        chain.push new TransformToMapping bulkOptions
+      if argv.uploadBulk
+        client = new Client host:host, keepAlive=false
+        sink = new BulkIndexSink client, index:index
+        sink.promise.finally -> client.close()
+        chain.push sink
+      else if argv.uploadMapping
+        client = new Client host:host, keepAlive=false
+        params = index:index, reset:argv.clearIndex
+        if argv.indexSettings?
+          params.settings = require path.resolve argv.indexSettings
+          
+        sink = new PutMappingSink client,params
+
+        sink.promise.finally -> client.close()
+        chain.push sink
+      else
+        chain.push stringify(), process.stdout
     chain
   filter: -> TBobTransform worldDescription, tbobOptions
   pipeline: ->
