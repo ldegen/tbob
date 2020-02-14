@@ -158,6 +158,38 @@ describe "The Command Line Interface", ->
       [ "Projekt", ["id","p3"]]
     ]
 
+  describe "When given the -F option", ->
+    it "uses a fixed factory for all expressions", ->
+      cli = Cli ["-f", "sexp", "-F" , "Projekt"], """
+      (id p1 title "SFB 42: Space Shuttle")
+      (id p2)
+      """
+      pipeline cli.input(), sink
+      expect(sink.promise).to.eventually.eql [
+        [ "Projekt", ["id", "p1", "title", "SFB 42: Space Shuttle"]]
+        [ "Projekt", ["id","p2"]]
+      ]
+
+    it "also allows to specify traits by giving the -F option more than once", ->
+      cli = Cli ["-f", "sexp", "-F" , "Projekt", "-F", "rahmenprojekt"], """
+      (id p1 title "SFB 42: Space Shuttle")
+      (id p2)
+      """
+      pipeline cli.input(), sink
+      expect(sink.promise).to.eventually.eql [
+        [ "Projekt", "rahmenprojekt", ["id", "p1", "title", "SFB 42: Space Shuttle"]]
+        [ "Projekt", "rahmenprojekt", ["id","p2"]]
+      ]
+
+    xit "can be used with an empty spec", ->
+      cli = Cli ["-f", "sexp", "-F" , "Projekt", "-F", "rahmenprojekt"]
+      pipeline cli.input(), sink
+      expect(sink.promise).to.eventually.eql [
+        [ "Projekt", "rahmenprojekt"]
+      ]
+
+
+
   it "reads coffee/js files from a well-known directory and constructs a world definition", ->
     fs.writeFileSync (Path.join worldDir, "foo.js"), """
     module.exports = function(){
@@ -375,6 +407,56 @@ describe "The Command Line Interface", ->
       cli = Cli ["-p", transformFile]
       expect(cli.filter().opts.mode).to.eql "duplex"
 
+    it "passes the output options to the factory", ->
+      transformFile = Path.join tmpDir, "my-transform.coffee"
+      fs.writeFileSync transformFile, """
+      { Transform } = require "stream"
+      module.exports = (options)->
+        tf = new Transform
+          objectMode: true
+          transform: (chunk, enc, done)->
+            @push options
+            done()
+        tf
+      """
+      
+
+      cli = Cli [
+        '-k', 'defaultIdAttr',
+        '-y', 'defaultTypeAttr',
+        '-x', 'defaultIndexAttr',
+        '-i', 'defaultIndex',
+        '-t', 'defaultType'
+        '-K', 'overrideIdAttr',
+        '-Y', 'overrideTypeAttr',
+        '-X', 'overrideIndexAttr'
+        '-T', 'overrideType',
+        '-I', 'overrideIndex'
+        '-p', transformFile
+
+      ]
+
+      outputChain = cli.output()
+      expect(outputChain.length).to.eql 1
+      [first,...] = outputChain
+
+      pipeline outputChain, sink
+      first.write {oink:42}
+      first.end()
+      expect(sink.promise).to.eventually.eql [
+        defaults:
+          id_attr:'defaultIdAttr'
+          type_attr: 'defaultTypeAttr'
+          index_attr: 'defaultIndexAttr'
+          index: 'defaultIndex'
+          type: 'defaultType'
+        overrides:
+          id_attr:'overrideIdAttr'
+          type_attr:'overrideTypeAttr'
+          index_attr: 'overrideIndexAttr'
+          index: 'overrideIndex'
+          type: 'overrideType'
+      ]
 
       
 

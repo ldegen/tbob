@@ -54,6 +54,25 @@ options:
       Note that the other formats are still world in progress; the format has not yet
       stabelized.
 
+  - short: F
+    long: fixed-factory
+    argument: FACTORY_OR_TRAIT
+    description: |
+      Specify a fixed Factory for all input specs.
+      Let's say you have a factory called `Factory` and traits `traitA` and `traitB`.
+      Your usual document spec would look something like this: 
+
+        `["Factory", "traitA", "traitB", {"key": "value", ...}]` 
+
+      But if you know that all your documents use the same factory and traits,
+      you could pass `-F Factory -F traitA -F traitB`. Then your document specs would
+      reduce to
+
+        `{"key": "value", ...}`
+
+      Note that when using this options, your document specifications MUST NOT include
+      factory/trait definitions!
+
   - short: b
     long: bulk
     description: |

@@ -117,6 +117,14 @@ module.exports = (process, { TBobTransform, TransformToBulk, TransformToMapping,
             @push [names..., value]
         done()
 
+  fixedFactory = (spec)->
+    factoryAndTraits = if Array.isArray spec then spec else [spec]
+    new Transform
+      objectMode: true
+      transform: (chunk, enc, done)->
+        @push [factoryAndTraits...,chunk]
+        done()
+
   stringify = ->
     new Transform
       objectMode:true
@@ -142,25 +150,6 @@ module.exports = (process, { TBobTransform, TransformToBulk, TransformToMapping,
   if argv.lookupFile?
     tbobOptions.options.lookup = require path.resolve argv.lookupFile
 
-  # check for custom sink module
-  customSink = if argv.pipe?
-    # make sure that non of the conflicting options were given
-    if argv.bulk or argv.uploadBulk or argv.mapping or argv.uploadMapping
-      throw new Error "Cannot use -p together with any of -b, -B, -m, -M"
-    # create the writable
-    factory = require path.resolve argv.pipe
-    writable = factory tbobOptions.options.lookup
-
-    # check if it is infact a writable
-    if not writable instanceof Writable
-      throw new Error "Your custom sink module did not create Writable"
-
-    # determine tbob mode
-    mode = writable._tbobMode ? "document"
-    if not mode in ["document", "type", "duplex"]
-      throw new Error "Not a valid mode: #{mode}"
-    tbobOptions.mode = mode
-    writable
 
   bulkOptions=
     defaults:
@@ -181,6 +170,27 @@ module.exports = (process, { TBobTransform, TransformToBulk, TransformToMapping,
     index_attr: argv.overrideIndexAttr
     index: argv.overrideIndex
     type: argv.overrideType
+
+  # check for custom sink module
+  customSink = if argv.pipe?
+    # make sure that non of the conflicting options were given
+    if argv.bulk or argv.uploadBulk or argv.mapping or argv.uploadMapping
+      throw new Error "Cannot use -p together with any of -b, -B, -m, -M"
+    # create the writable
+    factory = require path.resolve argv.pipe
+    writable = factory bulkOptions
+
+    # check if it is infact a writable
+    if not writable instanceof Writable
+      throw new Error "Your custom sink module did not create Writable"
+
+    # determine tbob mode
+    mode = writable._tbobMode ? "document"
+    if not mode in ["document", "type", "duplex"]
+      throw new Error "Not a valid mode: #{mode}"
+    tbobOptions.mode = mode
+    writable
+
   input: ->
     source = (
       if argv._.length == 0
@@ -190,7 +200,7 @@ module.exports = (process, { TBobTransform, TransformToBulk, TransformToMapping,
     )
 
 
-    switch argv.format
+    tfs = switch argv.format
       when "yaml" then [
         source
         splitLines()
@@ -213,6 +223,11 @@ module.exports = (process, { TBobTransform, TransformToBulk, TransformToMapping,
         splitLines()
         parseJson()
       ]
+    if argv.fixedFactory
+      tfs.push fixedFactory argv.fixedFactory
+
+    tfs
+
   output: ->
     chain = []
     if customSink?
