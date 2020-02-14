@@ -54,7 +54,7 @@ module.exports = (process, { TBobTransform, TransformToBulk, TransformToMapping,
   stat = fs.statSync worldDir
   worldDefs = []
   if stat.isFile()
-    file = require.resolve worldDir
+    file = path.resolve worldDir
     worldDefs.push require file
   else if stat.isDirectory()
     walkdir.sync worldDir, (file, stat)->
