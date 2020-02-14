@@ -24,6 +24,7 @@ describe "The Command Line Interface", ->
   cli = undefined
   alternativeWorldDir = undefined
   alternativeSubDir=undefined
+  alternativeWorldFile = undefined
   pipeline =  (args...)->
     args.reduce (a0,b0)->
       a = if isArray a0 then pipeline a0... else a0
@@ -37,6 +38,7 @@ describe "The Command Line Interface", ->
     subDir = Path.join worldDir, "subdir"
 
     alternativeWorldDir = Path.join tmpDir, "world"
+    alternativeWorldFile = Path.join tmpDir, "single-file-world.js"
     alternativeSubDir = Path.join alternativeWorldDir, "subdir"
 
     mockProcess = (argv,input)->
@@ -203,6 +205,25 @@ describe "The Command Line Interface", ->
     worldDescription.call mock
 
     expect(list).to.eql ["foo","bar"]
+
+  it "can be configured construct world definition from a single file", ->
+    fs.writeFileSync alternativeWorldFile, """
+    module.exports = function(){
+      this.factory("foo",function(){});
+    };
+    """
+
+    list = []
+    mock =
+      factory: (name)->
+        list.push name
+
+    cli = Cli ["-w", alternativeWorldFile],""
+
+    worldDescription = cli.filter().worldDescription
+    worldDescription.call mock
+
+    expect(list).to.eql ["foo"]
 
   it "can be configured to only fill attributes that are marked as `derived`", ->
     cli = Cli ['-d'], ""

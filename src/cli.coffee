@@ -52,14 +52,18 @@ module.exports = (process, { TBobTransform, TransformToBulk, TransformToMapping,
     worldDir = path.join tbobDir, 'world'
 
   stat = fs.statSync worldDir
-  if not stat.isDirectory()
-    throw new Error("Please create a directory for your factory definitions at #{worldDir}")
-
   worldDefs = []
-  walkdir.sync worldDir, (file, stat)->
-    if (path.extname(file) in ['.coffee', '.js']) and stat.isFile()
-      def = require file
-      worldDefs.push def
+  if stat.isFile()
+    file = require.resolve worldDir
+    worldDefs.push require file
+  else if stat.isDirectory()
+    walkdir.sync worldDir, (file, stat)->
+      if (path.extname(file) in ['.coffee', '.js']) and stat.isFile()
+        def = require file
+        worldDefs.push def
+  else
+    throw new Error("Please create a file or directory for your factory definitions at #{worldDir}")
+
 
   if worldDefs.length ==0
     #throw new Error("No factory definitions found in #{worldDir}")
